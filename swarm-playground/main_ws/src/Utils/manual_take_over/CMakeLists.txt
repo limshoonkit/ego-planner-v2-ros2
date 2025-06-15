@@ -1,42 +1,60 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.10)
 project(manual_take_over)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE "Release")
-ADD_COMPILE_OPTIONS(-std=c++11 )
-ADD_COMPILE_OPTIONS(-std=c++14 )
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
+add_compile_options(-Wall -O3 -g)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+
+# Dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  std_msgs
-  quadrotor_msgs
-  sensor_msgs
-)
+find_package(quadrotor_msgs REQUIRED)
 
-catkin_package(
-  DEPENDS quadrotor_msgs
-)
-
+# Include directories
 include_directories(
+  include
   SYSTEM
-  ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
 )
 
+# Node 1: manual_take_over
 add_executable(manual_take_over
-  src/manual_take_over.cpp 
-  )
-target_link_libraries(manual_take_over 
-  ${catkin_LIBRARIES}
-  )
+  src/manual_take_over.cpp
+)
+ament_target_dependencies(manual_take_over
+  rclcpp
+  std_msgs
+  sensor_msgs
+  quadrotor_msgs
+)
 
+# Node 2: manual_take_over_station
 add_executable(manual_take_over_station
-  src/ground_station.cpp 
-  )
-target_link_libraries(manual_take_over_station 
-  ${catkin_LIBRARIES}
-  )
+  src/ground_station.cpp
+)
+ament_target_dependencies(manual_take_over_station
+  rclcpp
+  std_msgs
+  sensor_msgs
+  quadrotor_msgs
+)
 
+# Install executables
+install(TARGETS
+  manual_take_over
+  manual_take_over_station
+  DESTINATION lib/${PROJECT_NAME}
+)
 
+ament_package()

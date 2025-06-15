@@ -1,36 +1,51 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.10)
 project(random_goals)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE "Release")
-ADD_COMPILE_OPTIONS(-std=c++11 )
-ADD_COMPILE_OPTIONS(-std=c++14 )
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
+add_compile_options(-Wall -O3 -g)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# Dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
+find_package(quadrotor_msgs REQUIRED)
+find_package(traj_utils REQUIRED)
+find_package(uav_utils REQUIRED)
+
+# Include directories
+include_directories(
+  SYSTEM
+  include
+  ${EIGEN3_INCLUDE_DIR}
+)
+
+# Executable
+add_executable(random_goals_node
+  src/random_goals_node.cpp
+)
+
+# Link dependencies
+ament_target_dependencies(random_goals_node
+  rclcpp
   std_msgs
   quadrotor_msgs
   traj_utils
   uav_utils
 )
 
-catkin_package(
- CATKIN_DEPENDS traj_utils quadrotor_msgs
+# Install
+install(TARGETS random_goals_node
+  DESTINATION lib/${PROJECT_NAME}
 )
 
-include_directories(
-  SYSTEM
-  ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
-)
-
-add_executable(random_goals_node
-  src/random_goals_node.cpp 
-  )
-target_link_libraries(random_goals_node 
-  ${catkin_LIBRARIES}
-  )
-
-
+# Export package
+ament_package()

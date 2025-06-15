@@ -19,7 +19,7 @@ def main(argv):
 
     for i in range(goal_num_in):
         str_goals = "        <rosparam param=\"goal{goal_id}\">[{p0},{p1},{p2}]</rosparam>\n".format(goal_id=i, p0=r * math.sin(theta[i]), p1=r * math.cos(theta[i]), p2=height, \
-        target0_x=-r * math.sin(theta[i]), target0_y=-r * math.cos(theta[i]), target0_z=height) 
+        target_x=-r * math.sin(theta[i]), target_y=-r * math.cos(theta[i]), target_z=height) 
         file.write(str_goals)
 
     str_tail = "    </node>\n</launch>"
