@@ -66,7 +66,7 @@ private:
       return;
     }
     if ((int)trajs_.size() > recv_id &&
-        (msg->start_time - trajs_[recv_id].start_time).seconds() <= 0)
+        (rclcpp::Time(msg->start_time) - trajs_[recv_id].start_time).seconds() <= 0)
     {
       RCLCPP_WARN(this->get_logger(), "Received drone %d's trajectory out of order or duplicated, abandon it.", (int)recv_id);
       return;

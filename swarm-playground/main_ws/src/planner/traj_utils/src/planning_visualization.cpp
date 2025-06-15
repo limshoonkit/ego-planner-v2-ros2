@@ -11,9 +11,9 @@ namespace ego_planner
     goal_point_pub = node_->create_publisher<visualization_msgs::msg::Marker>("goal_point", 2);
     global_list_pub = node_->create_publisher<visualization_msgs::msg::Marker>("global_list", 2);
     init_list_pub = node_->create_publisher<visualization_msgs::msg::Marker>("init_list", 2);
-    // optimal_list_pub = node_->create_publisher<visualization_msgs::msg::Marker>("optimal_list", 2);
+    optimal_list_pub = node_->create_publisher<visualization_msgs::msg::Marker>("optimal_list", 2);
     a_star_list_pub = node_->create_publisher<visualization_msgs::msg::Marker>("a_star_list", 20);
-    // failed_list_pub = node_->create_publisher<visualization_msgs::msg::Marker>("failed_list", 2);
+    failed_list_pub = node_->create_publisher<visualization_msgs::msg::Marker>("failed_list", 2);
     // intermediate_pt0_pub = nh.advertise<visualization_msgs::msg::Marker>("pt0_dur_opt", 10);
     // intermediate_grad0_pub = nh.advertise<visualization_msgs::msg::MarkerArray>("grad0_dur_opt", 10);
     // intermediate_pt1_pub = nh.advertise<visualization_msgs::msg::Marker>("pt1_dur_opt", 10);
@@ -216,33 +216,33 @@ namespace ego_planner
     displayMarkerList(init_list_pub, init_pts, scale, color, id);
   }
 
-  // void PlanningVisualization::displayMultiOptimalPathList(vector<vector<Eigen::Vector3d>> optimal_trajs, const double scale) // zxzxzx
-  // {
+  void PlanningVisualization::displayMultiOptimalPathList(vector<vector<Eigen::Vector3d>> optimal_trajs, const double scale) // zxzxzx
+  {
 
-  //   if (optimal_list_pub->get_subscription_count() == 0)
-  //   {
-  //     return;
-  //   }
+    if (optimal_list_pub->get_subscription_count() == 0)
+    {
+      return;
+    }
 
-  //   static int last_nums = 0;
+    static int last_nums = 0;
 
-  //   for (int id = 0; id < last_nums; id++)
-  //   {
-  //     Eigen::Vector4d color(0, 0, 0, 0);
-  //     vector<Eigen::Vector3d> blank;
-  //     displayMarkerList(optimal_list_pub, blank, scale, color, id + 10, false);
-  //     rclcpp::sleep_for(std::chrono::milliseconds(1));
-  //   }
-  //   last_nums = 0;
+    for (int id = 0; id < last_nums; id++)
+    {
+      Eigen::Vector4d color(0, 0, 0, 0);
+      vector<Eigen::Vector3d> blank;
+      displayMarkerList(optimal_list_pub, blank, scale, color, id + 10, false);
+      rclcpp::sleep_for(std::chrono::milliseconds(1));
+    }
+    last_nums = 0;
 
-  //   for (int id = 0; id < (int)optimal_trajs.size(); id++)
-  //   {
-  //     Eigen::Vector4d color(1, 0, 0, 0.7);
-  //     displayMarkerList(optimal_list_pub, optimal_trajs[id], scale, color, id + 10, false);
-  //     rclcpp::sleep_for(std::chrono::milliseconds(1));
-  //     last_nums++;
-  //   }
-  // }
+    for (int id = 0; id < (int)optimal_trajs.size(); id++)
+    {
+      Eigen::Vector4d color(1, 0, 0, 0.7);
+      displayMarkerList(optimal_list_pub, optimal_trajs[id], scale, color, id + 10, false);
+      rclcpp::sleep_for(std::chrono::milliseconds(1));
+      last_nums++;
+    }
+  }
 
   void PlanningVisualization::displayOptimalList(Eigen::MatrixXd optimal_pts, int id)
   {
@@ -262,23 +262,23 @@ namespace ego_planner
     displayMarkerList(optimal_list_pub, list, 0.15, color, id);
   }
 
-  // void PlanningVisualization::displayFailedList(Eigen::MatrixXd failed_pts, int id)
-  // {
+  void PlanningVisualization::displayFailedList(Eigen::MatrixXd failed_pts, int id)
+  {
 
-  //   if (failed_list_pub->get_subscription_count() == 0)
-  //   {
-  //     return;
-  //   }
+    if (failed_list_pub->get_subscription_count() == 0)
+    {
+      return;
+    }
 
-  //   vector<Eigen::Vector3d> list;
-  //   for (int i = 0; i < failed_pts.cols(); i++)
-  //   {
-  //     Eigen::Vector3d pt = failed_pts.col(i).transpose();
-  //     list.push_back(pt);
-  //   }
-  //   Eigen::Vector4d color(0.3, 0, 0, 1);
-  //   displayMarkerList(failed_list_pub, list, 0.15, color, id);
-  // }
+    vector<Eigen::Vector3d> list;
+    for (int i = 0; i < failed_pts.cols(); i++)
+    {
+      Eigen::Vector3d pt = failed_pts.col(i).transpose();
+      list.push_back(pt);
+    }
+    Eigen::Vector4d color(0.3, 0, 0, 1);
+    displayMarkerList(failed_list_pub, list, 0.15, color, id);
+  }
 
   void PlanningVisualization::displayAStarList(std::vector<std::vector<Eigen::Vector3d>> a_star_paths, int id /* = Eigen::Vector4d(0.5,0.5,0,1)*/)
   {

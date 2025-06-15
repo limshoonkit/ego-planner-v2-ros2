@@ -71,26 +71,32 @@ namespace ego_planner
     if (target_type_ == TARGET_TYPE::MANUAL_TARGET)
     {
       waypoint_sub_ = node_->create_subscription<quadrotor_msgs::msg::GoalSet>(
-          "/goal", 1, std::bind(&EGOReplanFSM::waypointCallback, this, std::placeholders::_1));
+          "/goal",
+          rclcpp::QoS(1),
+          std::bind(&EGOReplanFSM::waypointCallback, this, std::placeholders::_1));
     }
     else if (target_type_ == TARGET_TYPE::PRESET_TARGET)
     {
       trigger_sub_ = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
-          "/traj_start_trigger", 1, std::bind(&EGOReplanFSM::triggerCallback, this, std::placeholders::_1));
+          "/traj_start_trigger",
+          rclcpp::QoS(1),
+          std::bind(&EGOReplanFSM::triggerCallback, this, std::placeholders::_1));
 
-      RCLCPP_INFO(node_->get_logger(), "Wait for 2 second.");
-      int count = 0;
-      rclcpp::Rate rate(1000, node_->get_clock());
-      while (rclcpp::ok() && count++ < 2000)
-      {
-        rclcpp::spin_some(node_);
-        rate.sleep();
-      }
+      RCLCPP_INFO(node_->get_logger(), "Wait for 2 seconds.");
 
-      readGivenWpsAndPlan();
+      // Use a timer countdown
+      auto timer = node_->create_wall_timer(
+          std::chrono::milliseconds(2000),
+          [this]()
+          {
+            readGivenWpsAndPlan();
+          });
     }
     else
-      std::cout << "Wrong target_type_ value! target_type_=" << target_type_ << std::endl;
+    {
+      RCLCPP_ERROR(node_->get_logger(), "Wrong target_type_ value! target_type_=%d",
+                   static_cast<int>(target_type_));
+    }
   }
 
   void EGOReplanFSM::execFSMCallback()
@@ -640,39 +646,39 @@ namespace ego_planner
 
     if (msg->drone_id < 0)
     {
-      RCLCPP_ERROR(this->get_logger(), "drone_id < 0 is not allowed in a swarm system!");
+      RCLCPP_ERROR(node_->get_logger(), "drone_id < 0 is not allowed in a swarm system!");
       return;
     }
     if (msg->order != 5)
     {
-      RCLCPP_ERROR(this->get_logger(), "Only support trajectory order equals 5 now!");
+      RCLCPP_ERROR(node_->get_logger(), "Only support trajectory order equals 5 now!");
       return;
     }
     if (msg->duration.size() != (msg->inner_x.size() + 1))
     {
-      RCLCPP_ERROR(this->get_logger(), "WRONG trajectory parameters.");
+      RCLCPP_ERROR(node_->get_logger(), "WRONG trajectory parameters.");
       return;
     }
     if (planner_manager_->traj_.swarm_traj.size() > recv_id &&
         planner_manager_->traj_.swarm_traj[recv_id].drone_id == (int)recv_id &&
         rclcpp::Time(msg->start_time).seconds() - planner_manager_->traj_.swarm_traj[recv_id].start_time <= 0)
     {
-      RCLCPP_WARN(this->get_logger(), "Received drone %d's trajectory out of order or duplicated, abandon it.", (int)recv_id);
+      RCLCPP_WARN(node_->get_logger(), "Received drone %d's trajectory out of order or duplicated, abandon it.", (int)recv_id);
       return;
     }
 
-    rclcpp::Time t_now = this->get_clock()->now();
+    rclcpp::Time t_now = node_->get_clock()->now();
     double time_diff = (t_now - rclcpp::Time(msg->start_time)).seconds();
     if (abs(time_diff) > 0.25)
     {
       if (abs(time_diff) < 10.0) // 10 seconds offset, more likely to be caused by unsynced system time.
       {
-        RCLCPP_WARN(this->get_logger(), "Time stamp diff: Local - Remote Agent %d = %fs",
+        RCLCPP_WARN(node_->get_logger(), "Time stamp diff: Local - Remote Agent %d = %fs",
                     msg->drone_id, time_diff);
       }
       else
       {
-        RCLCPP_ERROR(this->get_logger(), "Time stamp diff: Local - Remote Agent %d = %fs, swarm time seems not synchronized, abandon!",
+        RCLCPP_ERROR(node_->get_logger(), "Time stamp diff: Local - Remote Agent %d = %fs, swarm time seems not synchronized, abandon!",
                      msg->drone_id, time_diff);
         return;
       }

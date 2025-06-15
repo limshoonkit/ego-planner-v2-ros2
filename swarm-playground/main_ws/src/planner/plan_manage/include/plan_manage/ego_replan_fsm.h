@@ -16,11 +16,11 @@
 #include <plan_env/grid_map.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <quadrotor_msgs/msg/goal_set.hpp>
-#include <traj_utils/DataDisp.h>
+#include <traj_utils/msg/data_disp.hpp>
 #include <plan_manage/planner_manager.h>
 #include <traj_utils/planning_visualization.h>
-#include <traj_utils/PolyTraj.h>
-#include <traj_utils/MINCOTraj.h>
+#include <traj_utils/msg/poly_traj.hpp>
+#include <traj_utils/msg/minco_traj.hpp>
 
 using std::vector;
 using std::placeholders::_1;
@@ -28,11 +28,15 @@ using std::placeholders::_1;
 namespace ego_planner
 {
 
-  class EGOReplanFSM : public rclcpp::Node
+  class EGOReplanFSM
   {
   public:
-    EGOReplanFSM();
-    ~EGOReplanFSM() {}
+    EGOReplanFSM(/* args */)
+    {
+    }
+    ~EGOReplanFSM()
+    {
+    }
 
     void init(rclcpp::Node::SharedPtr node);
 
@@ -61,7 +65,7 @@ namespace ego_planner
     /* planning utils */
     EGOPlannerManager::Ptr planner_manager_;
     PlanningVisualization::Ptr visualization_;
-    traj_utils::DataDisp data_disp_;
+    traj_utils::msg::DataDisp data_disp_;
 
     /* parameters */
     int target_type_; // 1 mannual select, 2 hard code
@@ -124,7 +128,7 @@ namespace ego_planner
     void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void triggerCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
     void RecvBroadcastMINCOTrajCallback(const traj_utils::msg::MINCOTraj::SharedPtr msg);
-    void polyTraj2ROSMsg(traj_utils::PolyTraj &poly_msg, traj_utils::MINCOTraj &MINCO_msg);
+    void polyTraj2ROSMsg(traj_utils::msg::PolyTraj &poly_msg, traj_utils::msg::MINCOTraj &MINCO_msg);
 
     /* ground height measurement */
     bool measureGroundHeight(double &height);

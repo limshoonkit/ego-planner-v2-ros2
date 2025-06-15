@@ -25,10 +25,11 @@ find_package(cv_bridge REQUIRED)
 find_package(quadrotor_msgs REQUIRED)
 find_package(plan_env REQUIRED)
 find_package(path_searching REQUIRED)
-find_package(traj_utils REQUIRED)
+find_package(traj_utils REQUIRED COMPONENTS traj_utils_lib)
 find_package(traj_opt REQUIRED)
 
 find_package(PCL REQUIRED)
+find_package(pcl_conversions REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 if(BUILD_TESTING)
@@ -40,7 +41,6 @@ endif()
 
 include_directories(SYSTEM
   include
-  ${PROJECT_SOURCE_DIR}/include
   ${EIGEN3_INCLUDE_DIR}
   ${PCL_INCLUDE_DIRS}
 )
@@ -52,28 +52,29 @@ add_executable(ego_planner_node
   src/planner_manager.cpp
 )
 
-target_include_directories(ego_planner_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-)
-
 ament_target_dependencies(ego_planner_node
   rclcpp std_msgs geometry_msgs nav_msgs visualization_msgs
   cv_bridge plan_env path_searching traj_opt traj_utils
-  quadrotor_msgs Eigen3 PCL
+  quadrotor_msgs Eigen3 PCL pcl_conversions
+)
+
+find_library(TRAJ_UTILS_LIB traj_utils_lib PATHS ${traj_utils_LIBRARY_DIRS})
+
+target_link_libraries(ego_planner_node
+    ${TRAJ_UTILS_LIB}
+    ${path_searching_LIBRARIES}
+    ${traj_opt_LIBRARIES}
 )
 
 # === traj_server ===
 add_executable(traj_server src/traj_server.cpp)
 
-target_include_directories(traj_server PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-)
-
 ament_target_dependencies(traj_server
   rclcpp std_msgs geometry_msgs nav_msgs visualization_msgs
   cv_bridge plan_env path_searching traj_opt traj_utils
-  quadrotor_msgs Eigen3 PCL
+  quadrotor_msgs Eigen3 PCL pcl_conversions
 )
+
 
 # === Installation ===
 install(TARGETS
@@ -82,17 +83,13 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION include/${PROJECT_NAME}
-)
 
 # === Export for downstream packages ===
-ament_export_include_directories(include)
 ament_export_libraries()
 ament_export_dependencies(
   rclcpp std_msgs geometry_msgs nav_msgs visualization_msgs
   cv_bridge plan_env path_searching traj_opt traj_utils
-  quadrotor_msgs Eigen3 PCL
+  quadrotor_msgs Eigen3 PCL pcl_conversions
 )
 
 ament_package()

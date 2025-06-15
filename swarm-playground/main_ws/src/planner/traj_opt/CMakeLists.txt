@@ -49,6 +49,10 @@ add_library( traj_opt
     src/poly_traj_optimizer.cpp 
     )
 
+target_link_libraries(traj_opt
+  path_searching
+)
+
 ament_target_dependencies(traj_opt 
                           std_msgs visualization_msgs 
                           cv_bridge path_searching
@@ -58,7 +62,11 @@ ament_target_dependencies(traj_opt
 
                           
 install(TARGETS traj_opt
-  DESTINATION lib
+  EXPORT traj_opt
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
 
 install(DIRECTORY include/

@@ -170,9 +170,9 @@ private:
     cmd_.acceleration.x = a(0);
     cmd_.acceleration.y = a(1);
     cmd_.acceleration.z = a(2);
-    cmd_.jerk.x = j(0);
-    cmd_.jerk.y = j(1);
-    cmd_.jerk.z = j(2);
+    // cmd_.jerk.x = j(0);
+    // cmd_.jerk.y = j(1);
+    // cmd_.jerk.z = j(2);
     cmd_.yaw = y;
     cmd_.yaw_dot = yd;
     pos_cmd_pub_->publish(cmd_);

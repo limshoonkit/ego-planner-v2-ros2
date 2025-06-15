@@ -65,7 +65,11 @@ target_link_libraries( plan_env
 )  
 
 install(TARGETS plan_env
-        DESTINATION lib
+  EXPORT plan_env
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
 
 install(DIRECTORY include/${PROJECT_NAME}/

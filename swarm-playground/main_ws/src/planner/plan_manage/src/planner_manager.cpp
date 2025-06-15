@@ -43,8 +43,7 @@ namespace ego_planner
       const bool flag_randomPolyTraj, const bool touch_goal)
   {
     rclcpp::Time t_start = node_->now();
-    rclcpp::Duration t_init, t_opt;
-
+    rclcpp::Duration t_opt = rclcpp::Duration::from_seconds(0.0);
     static int count = 0;
     cout << "\033[47;30m\n[" << t_start.seconds() << "] Drone " << pp_.drone_id << " Replan " << count++ << "\033[0m" << endl;
 
@@ -66,7 +65,7 @@ namespace ego_planner
       return false;
     }
 
-    t_init = node_->now() - t_start;
+    auto t_init = node_->now() - t_start;
 
     std::vector<Eigen::Vector3d> point_set;
     for (int i = 0; i < cstr_pts.cols(); ++i)

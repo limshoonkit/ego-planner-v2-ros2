@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include <optimizer/poly_traj_optimizer.h>
-#include <traj_utils/DataDisp.h>
+#include <traj_utils/msg/data_disp.hpp>
 #include <plan_env/grid_map.h>
 #include <traj_utils/plan_container.hpp>
 #include <traj_utils/planning_visualization.h>
@@ -28,7 +28,7 @@ namespace ego_planner
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     /* main planning interface */
-    void initPlanModules(rclcpp::Node::SharedPtr node, PlanningVisualization::Ptr vis = nullptr);
+    void initPlanModules(rclcpp::Node::SharedPtr &node, PlanningVisualization::Ptr vis);
     bool computeInitState(
         const Eigen::Vector3d &start_pt, const Eigen::Vector3d &start_vel,
         const Eigen::Vector3d &start_acc, const Eigen::Vector3d &local_target_pt,

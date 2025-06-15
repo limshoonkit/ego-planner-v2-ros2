@@ -19,6 +19,7 @@ find_package(rosidl_typesupport_cpp REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(quadrotor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(traj_utils REQUIRED)
@@ -34,6 +35,7 @@ set(DEPENDENCIES
   rcutils
   std_msgs
   sensor_msgs
+  quadrotor_msgs
   nav_msgs
   geometry_msgs
   traj_utils

@@ -54,7 +54,11 @@ add_library( path_searching SHARED
 ament_target_dependencies(path_searching plan_env std_msgs visualization_msgs nav_msgs rclcpp Eigen3 PCL pcl_conversions cv_bridge )
 
 install(TARGETS path_searching
-        DESTINATION lib
+  EXPORT path_searching
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
 
 install(DIRECTORY include/${PROJECT_NAME}/
