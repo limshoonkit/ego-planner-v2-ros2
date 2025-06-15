@@ -1,24 +1,24 @@
 #ifndef MAPS_HPP
 #define MAPS_HPP
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
-#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 namespace mocka {
 
 class Maps {
 public:
   typedef struct BasicInfo {
-    ros::NodeHandle *nh_private;
+    rclcpp::Node::SharedPtr node;
     int sizeX;
     int sizeY;
     int sizeZ;
     int seed;
     double scale;
-    sensor_msgs::PointCloud2 *output;
+    sensor_msgs::msg::PointCloud2 *output;
     pcl::PointCloud<pcl::PointXYZ> *cloud;
   } BasicInfo;
 
