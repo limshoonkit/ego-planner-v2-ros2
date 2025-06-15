@@ -96,7 +96,7 @@ bool AStar::ConvertToIndexAndAdjustStartEndPoints(Vector3d start_pt, Vector3d en
     int occ;
     if (checkOccupancy(Index2Coord(start_idx)))
     {
-        // ROS_WARN("Start point is insdide an obstacle.");
+        // RCLCPP_WARN(rclcpp::get_logger("AStar"), "Start point is inside an obstacle.");
         do
         {
             start_pt = (start_pt - end_pt).normalized() * step_size_ + start_pt;
@@ -109,7 +109,7 @@ bool AStar::ConvertToIndexAndAdjustStartEndPoints(Vector3d start_pt, Vector3d en
             occ = checkOccupancy(Index2Coord(start_idx));
             if (occ == -1)
             {
-                ROS_WARN("[Astar] Start point outside the map region.");
+                RCLCPP_WARN(rclcpp::get_logger("AStar"), "[Astar] Start point outside the map region.");
                 return false;
             }
         } while (occ);
@@ -117,7 +117,7 @@ bool AStar::ConvertToIndexAndAdjustStartEndPoints(Vector3d start_pt, Vector3d en
 
     if (checkOccupancy(Index2Coord(end_idx)))
     {
-        // ROS_WARN("End point is insdide an obstacle.");
+        // RCLCPP_WARN(rclcpp::get_logger("AStar"), "End point is inside an obstacle.");
         do
         {
             end_pt = (end_pt - start_pt).normalized() * step_size_ + end_pt;
@@ -130,7 +130,7 @@ bool AStar::ConvertToIndexAndAdjustStartEndPoints(Vector3d start_pt, Vector3d en
             occ = checkOccupancy(Index2Coord(start_idx));
             if (occ == -1)
             {
-                ROS_WARN("[Astar] End point outside the map region.");
+                RCLCPP_WARN(rclcpp::get_logger("AStar"), "[Astar] End point outside the map region.");
                 return false;
             }
         } while (checkOccupancy(Index2Coord(end_idx)));
@@ -141,7 +141,7 @@ bool AStar::ConvertToIndexAndAdjustStartEndPoints(Vector3d start_pt, Vector3d en
 
 ASTAR_RET AStar::AstarSearch(const double step_size, Vector3d start_pt, Vector3d end_pt)
 {
-    ros::Time time_1 = ros::Time::now();
+    auto time_1 = std::chrono::steady_clock::now();
     ++rounds_;
 
     step_size_ = step_size;
@@ -151,12 +151,9 @@ ASTAR_RET AStar::AstarSearch(const double step_size, Vector3d start_pt, Vector3d
     Vector3i start_idx, end_idx;
     if (!ConvertToIndexAndAdjustStartEndPoints(start_pt, end_pt, start_idx, end_idx))
     {
-        ROS_ERROR("Unable to handle the initial or end point, force return!");
+        RCLCPP_ERROR(rclcpp::get_logger("AStar"), "Unable to handle the initial or end point, force return!");
         return ASTAR_RET::INIT_ERR;
     }
-
-    // if ( start_pt(0) > -1 && start_pt(0) < 0 )
-    //     cout << "start_pt=" << start_pt.transpose() << " end_pt=" << end_pt.transpose() << endl;
 
     GridNodePtr startPtr = GridNodeMap_[start_idx(0)][start_idx(1)][start_idx(2)];
     GridNodePtr endPtr = GridNodeMap_[end_idx(0)][end_idx(1)][end_idx(2)];
@@ -186,15 +183,12 @@ ASTAR_RET AStar::AstarSearch(const double step_size, Vector3d start_pt, Vector3d
         current = openSet_.top();
         openSet_.pop();
 
-        // if ( num_iter < 10000 )
-        //     cout << "current=" << current->index.transpose() << endl;
-
         if (current->index(0) == endPtr->index(0) && current->index(1) == endPtr->index(1) && current->index(2) == endPtr->index(2))
         {
-            // ros::Time time_2 = ros::Time::now();
-            // printf("\033[34mA star iter:%d, time:%.3f\033[0m\n",num_iter, (time_2 - time_1).toSec()*1000);
-            // if((time_2 - time_1).toSec() > 0.1)
-            //     ROS_WARN("Time consume in A star path finding is %f", (time_2 - time_1).toSec() );
+            // auto time_2 = std::chrono::steady_clock::now();
+            // double elapsed = std::chrono::duration<double>(time_2 - time_1).count();
+            // if(elapsed > 0.1)
+            //     RCLCPP_WARN(rclcpp::get_logger("AStar"), "Time consume in A star path finding is %f", elapsed );
             gridPath_ = retrievePath(current);
             return ASTAR_RET::SUCCESS;
         }
@@ -253,18 +247,18 @@ ASTAR_RET AStar::AstarSearch(const double step_size, Vector3d start_pt, Vector3d
                         neighborPtr->fScore = tentative_gScore + getHeu(neighborPtr, endPtr);
                     }
                 }
-        ros::Time time_2 = ros::Time::now();
-        if ((time_2 - time_1).toSec() > 0.2)
+        auto time_2 = std::chrono::steady_clock::now();
+        if (std::chrono::duration<double>(time_2 - time_1).count() > 0.2)
         {
-            ROS_WARN("Failed in A star path searching !!! 0.2 seconds time limit exceeded.");
+            RCLCPP_WARN(rclcpp::get_logger("AStar"), "Failed in A star path searching !!! 0.2 seconds time limit exceeded.");
             return ASTAR_RET::SEARCH_ERR;
         }
     }
 
-    ros::Time time_2 = ros::Time::now();
+    auto time_2 = std::chrono::steady_clock::now();
 
-    if ((time_2 - time_1).toSec() > 0.1)
-        ROS_WARN("Time consume in A star path finding is %.3fs, iter=%d", (time_2 - time_1).toSec(), num_iter);
+    if (std::chrono::duration<double>(time_2 - time_1).count() > 0.1)
+        RCLCPP_WARN(rclcpp::get_logger("AStar"), "Time consume in A star path finding is %.3fs, iter=%d", std::chrono::duration<double>(time_2 - time_1).count(), num_iter);
 
     return ASTAR_RET::SEARCH_ERR;
 }

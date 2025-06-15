@@ -4,14 +4,14 @@
 #include <Eigen/Eigen>
 #include <Eigen/StdVector>
 #include <cv_bridge/cv_bridge.h>
-#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <iostream>
 #include <random>
-#include <nav_msgs/Odometry.h>
+#include <nav_msgs/msg/odometry.hpp>
 #include <queue>
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <tuple>
-#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/msg/marker.hpp>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -114,7 +114,7 @@ struct MappingData
   bool has_odom_;
 
   // odom_depth_timeout_
-  ros::Time last_occ_update_time_;
+  rclcpp::Time last_occ_update_time_;
   bool flag_depth_odom_timeout_;
   bool flag_have_ever_received_depth_;
 
@@ -141,7 +141,7 @@ public:
   GridMap() {}
   ~GridMap() {}
 
-  void initMap(ros::NodeHandle &nh);
+  void initMap(rclcpp::Node::SharedPtr node);
   inline int getOccupancy(Eigen::Vector3d pos);
   inline int getInflateOccupancy(Eigen::Vector3d pos);
   inline double getResolution();
@@ -177,17 +177,17 @@ private:
   void publishMapInflate();
 
   // get depth image and camera pose
-  void depthPoseCallback(const sensor_msgs::ImageConstPtr &img,
-                         const geometry_msgs::PoseStampedConstPtr &pose);
-  void extrinsicCallback(const nav_msgs::OdometryConstPtr &odom);
-  void depthOdomCallback(const sensor_msgs::ImageConstPtr &img, const nav_msgs::OdometryConstPtr &odom);
-  void cloudCallback(const sensor_msgs::PointCloud2ConstPtr &img);
-  void odomCallback(const nav_msgs::OdometryConstPtr &odom);
+  void depthPoseCallback(const sensor_msgs::msg::Image::ConstPtr &img,
+                         const geometry_msgs::msg::PoseStamped::ConstPtr &pose);
+  void extrinsicCallback(const nav_msgs::msg::Odometry::ConstPtr &odom);
+  void depthOdomCallback(const sensor_msgs::msg::Image::ConstPtr &img, const nav_msgs::msg::Odometry::ConstPtr &odom);
+  void cloudCallback(const sensor_msgs::msg::PointCloud2::ConstPtr &img);
+  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr odom);
 
   // update occupancy by raycasting
-  void updateOccupancyCallback(const ros::TimerEvent & /*event*/);
-  void visCallback(const ros::TimerEvent & /*event*/);
-  void fadingCallback(const ros::TimerEvent & /*event*/);
+  void updateOccupancyCallback();
+  void visCallback();
+  void fadingCallback();
 
   void clearBuffer(char casein, int bound);
 
@@ -208,23 +208,30 @@ private:
   // nav_msgs::Odometry> SyncPolicyImageOdom; typedef
   // message_filters::sync_policies::ExactTime<sensor_msgs::Image,
   // geometry_msgs::PoseStamped> SyncPolicyImagePose;
-  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, nav_msgs::Odometry>
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, nav_msgs::msg::Odometry>
       SyncPolicyImageOdom;
-  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, geometry_msgs::PoseStamped>
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, geometry_msgs::msg::PoseStamped>
       SyncPolicyImagePose;
   typedef shared_ptr<message_filters::Synchronizer<SyncPolicyImagePose>> SynchronizerImagePose;
   typedef shared_ptr<message_filters::Synchronizer<SyncPolicyImageOdom>> SynchronizerImageOdom;
 
-  ros::NodeHandle node_;
-  shared_ptr<message_filters::Subscriber<sensor_msgs::Image>> depth_sub_;
-  shared_ptr<message_filters::Subscriber<geometry_msgs::PoseStamped>> pose_sub_;
-  shared_ptr<message_filters::Subscriber<nav_msgs::Odometry>> odom_sub_;
+  rclcpp::Node::SharedPtr node_;
+  std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>> depth_sub_;
+  std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseStamped>> pose_sub_;
+  std::shared_ptr<message_filters::Subscriber<nav_msgs::msg::Odometry>> odom_sub_;
   SynchronizerImagePose sync_image_pose_;
   SynchronizerImageOdom sync_image_odom_;
 
-  ros::Subscriber indep_cloud_sub_, indep_odom_sub_, extrinsic_sub_;
-  ros::Publisher map_pub_, map_inf_pub_;
-  ros::Timer occ_timer_, vis_timer_, fading_timer_;
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr indep_cloud_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr indep_odom_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr extrinsic_sub_;
+
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_inf_pub_;
+
+  rclcpp::TimerBase::SharedPtr occ_timer_;
+  rclcpp::TimerBase::SharedPtr vis_timer_;
+  rclcpp::TimerBase::SharedPtr fading_timer_;
 
   //
   uniform_real_distribution<double> rand_noise_;
@@ -306,7 +313,7 @@ inline void GridMap::changeInfBuf(const bool dir, const int inf_buf_idx, const E
           --md_.occupancy_buffer_inflate_[id_inf_buf];
           if (md_.occupancy_buffer_inflate_[id_inf_buf] > 65000) // An error case
           {
-            ROS_ERROR("A negtive value of nearby obstacle number! reset the map.");
+            RCLCPP_ERROR(node_->get_logger(), "A negtive value of nearby obstacle number! reset the map.");
             fill(md_.occupancy_buffer_.begin(), md_.occupancy_buffer_.end(), mp_.clamp_min_log_);
             fill(md_.occupancy_buffer_inflate_.begin(), md_.occupancy_buffer_inflate_.end(), 0L);
           }

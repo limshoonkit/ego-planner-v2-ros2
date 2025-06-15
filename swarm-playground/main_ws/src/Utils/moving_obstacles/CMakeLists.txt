@@ -1,15 +1,57 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.8)
 project(moving_obstacles)
-
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE "Release")
-ADD_COMPILE_OPTIONS(-std=c++11 )
-ADD_COMPILE_OPTIONS(-std=c++14 )
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
+add_compile_options(-Wall -O3 -g)
 
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# Dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(traj_opt REQUIRED)
+find_package(traj_utils REQUIRED)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
+# Include directories
+include_directories(
+  include
+  ${EIGEN3_INCLUDE_DIRS}
+)
+
+# Executable
+add_executable(${PROJECT_NAME} src/moving_obstacles.cpp)
+
+ament_target_dependencies(${PROJECT_NAME}
+  rclcpp
+  std_msgs
+  sensor_msgs
+  visualization_msgs
+  nav_msgs
+  traj_opt
+  traj_utils
+)
+
+target_link_libraries(${PROJECT_NAME}
+  traj_utils::traj_utils_lib
+)
+
+# Installation
+install(TARGETS ${PROJECT_NAME}
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Export
+ament_export_include_directories(include)
+ament_export_dependencies(
+  rclcpp
   std_msgs
   sensor_msgs
   nav_msgs
@@ -17,21 +59,4 @@ find_package(catkin REQUIRED COMPONENTS
   traj_utils
 )
 
-catkin_package(
-  DEPENDS traj_opt traj_utils
-)
-
-include_directories(
-  SYSTEM
-  ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
-)
-
-add_executable(moving_obstacles
-  src/moving_obstacles.cpp 
-  )
-target_link_libraries(moving_obstacles 
-  ${catkin_LIBRARIES}
-  )
-
-
+ament_package()

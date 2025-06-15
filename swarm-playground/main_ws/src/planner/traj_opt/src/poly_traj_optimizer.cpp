@@ -17,19 +17,20 @@ namespace ego_planner
   {
     if (initInnerPts.cols() != (initT.size() - 1))
     {
-      ROS_ERROR("initInnerPts.cols() != (initT.size()-1)");
+      RCLCPP_ERROR(node_->get_logger(), "initInnerPts.cols() != (initT.size()-1)");
       return false;
     }
 
     // Preparision 1: Some mise params
-    ros::Time t0 = ros::Time::now(), t1, t2;
+    auto t0 = node_->now();
+    rclcpp::Time t1, t2;
     int restart_nums = 0, rebound_times = 0;
     bool flag_force_return, flag_still_unsafe, flag_success, flag_swarm_too_close;
     multitopology_data_.initial_obstacles_avoided = false;
     wei_swarm_mod_ = wei_swarm_;
 
     // Preparision 2: Trajectory related params
-    t_now_ = ros::Time::now().toSec();
+    t_now_ = node_->now().seconds();
     piece_num_ = initT.size();
     jerkOpt_.reset(iniState, finState, piece_num_);
     variable_num_ = 4 * (piece_num_ - 1) + 1;
@@ -59,7 +60,7 @@ namespace ego_planner
       flag_swarm_too_close = false;
 
       /* ---------- optimize ---------- */
-      t1 = ros::Time::now();
+      t1 = node_->now();
       int result = lbfgs::lbfgs_optimize(
           variable_num_,
           x_init,
@@ -70,9 +71,9 @@ namespace ego_planner
           this,
           &lbfgs_params);
 
-      t2 = ros::Time::now();
-      double time_ms = (t2 - t1).toSec() * 1000;
-      double total_time_ms = (t2 - t0).toSec() * 1000;
+      t2 = node_->now();
+      double time_ms = (t2 - t1).seconds() * 1000;
+      double total_time_ms = (t2 - t0).seconds() * 1000;
 
       /* ---------- get result and check collision ---------- */
       if (result == lbfgs::LBFGS_CONVERGENCE ||
@@ -121,7 +122,7 @@ namespace ego_planner
       else
       {
         PRINTF_COND("iter=%d, time(ms)=%f, error\n", iter_num_, time_ms);
-        ROS_WARN_COND(VERBOSE_OUTPUT, "Solver error. Return = %d, %s. Skip this planning.", result, lbfgs::lbfgs_strerror(result));
+        RCLCPP_WARN(node_->get_logger(), "Solver error. Return = %d, %s. Skip this planning.", result, lbfgs::lbfgs_strerror(result));
       }
 
     } while ((flag_still_unsafe && restart_nums < 3) ||
@@ -161,7 +162,7 @@ namespace ego_planner
 
           if (pts_check.size() <= 0)
           {
-            ROS_ERROR("Failed to get points list to check (0x02). pts_check.size()=%d", (int)pts_check.size());
+            RCLCPP_ERROR(node_->get_logger(), "Failed to get points list to check (0x02). pts_check.size()=%d", (int)pts_check.size());
             return false;
           }
           else
@@ -171,7 +172,7 @@ namespace ego_planner
         }
         else
         {
-          ROS_ERROR("Failed to get points list to check (0x01). touch_goal_=%d, pts_check.size()=%d", touch_goal_, (int)pts_check.size());
+          RCLCPP_ERROR(node_->get_logger(), "Failed to get points list to check (0x01). touch_goal_=%d, pts_check.size()=%d", touch_goal_, (int)pts_check.size());
           pts_check.clear();
           return false;
         }
@@ -275,7 +276,7 @@ namespace ego_planner
           flag_got_end = false;
           if (in_id < 0 || out_id < 0)
           {
-            ROS_ERROR("Should not happen! in_id=%d, out_id=%d", in_id, out_id);
+            RCLCPP_ERROR(node_->get_logger(), "Should not happen! in_id=%d, out_id=%d", in_id, out_id);
             return CHK_RET::ERR;
           }
           segment_ids.push_back(std::pair<int, int>(in_id, out_id));
@@ -305,11 +306,11 @@ namespace ego_planner
         segment_ids[i].second = segment_ids[i + 1].second;
         segment_ids.erase(segment_ids.begin() + i + 1);
         --i;
-        ROS_WARN("A corner case 2, I have never exeam it.");
+        RCLCPP_WARN(node_->get_logger(), "A corner case 2, I have never exeam it.");
       }
       else
       {
-        ROS_WARN_COND(VERBOSE_OUTPUT, "A-star error, force return!");
+        RCLCPP_WARN(node_->get_logger(), "A-star error, force return!");
         return CHK_RET::ERR;
       }
     }
@@ -516,7 +517,7 @@ namespace ego_planner
         }
       }
 
-      //step 3
+      // step 3
       if (got_intersection_id >= 0)
       {
         for (int j = got_intersection_id + 1; j <= adjusted_segment_ids[i].second; ++j)
@@ -538,7 +539,7 @@ namespace ego_planner
       else
       {
         // Just ignore, it does not matter ^_^.
-        // ROS_ERROR("Failed to generate direction! segment_id=%d", i);
+        // RCLCPP_ERROR(node_->get_logger(), "Failed to generate direction! segment_id=%d", i);
       }
     }
 
@@ -590,7 +591,7 @@ namespace ego_planner
         }
         if (j < 0) // fail to get the obs free point
         {
-          ROS_ERROR("The drone is in obstacle. It means a crash in real-world.");
+          RCLCPP_ERROR(node_->get_logger(), "The drone is in obstacle. It means a crash in real-world.");
           in_id = 0;
         }
 
@@ -606,7 +607,7 @@ namespace ego_planner
         }
         if (j >= cps_.cp_size) // fail to get the obs free point
         {
-          ROS_WARN("Local target in collision, skip this planning.");
+          RCLCPP_WARN(node_->get_logger(), "Local target in collision, skip this planning.");
 
           force_stop_type_ = STOP_FOR_ERROR;
           return false;
@@ -635,11 +636,11 @@ namespace ego_planner
           segment_ids[i].second = segment_ids[i + 1].second;
           segment_ids.erase(segment_ids.begin() + i + 1);
           --i;
-          ROS_WARN("A corner case 2, I have never exeam it.");
+          RCLCPP_WARN(node_->get_logger(), "A corner case 2, I have never exeam it.");
         }
         else
         {
-          ROS_ERROR_COND(VERBOSE_OUTPUT, "A-star error");
+          RCLCPP_ERROR(node_->get_logger(),  "A-star error");
           segment_ids.erase(segment_ids.begin() + i);
           --i;
         }
@@ -733,7 +734,7 @@ namespace ego_planner
           }
         }
 
-        //step 3
+        // step 3
         if (got_intersection_id >= 0)
         {
           for (int j = got_intersection_id + 1; j <= segment_ids[i].second; ++j)
@@ -751,7 +752,7 @@ namespace ego_planner
             }
         }
         else
-          ROS_WARN_COND(VERBOSE_OUTPUT, "Failed to generate direction. It doesn't matter.");
+          RCLCPP_WARN(node_->get_logger(), "Failed to generate direction. It doesn't matter.");
       }
 
       force_stop_type_ = STOP_FOR_REBOUND;
@@ -761,7 +762,7 @@ namespace ego_planner
     return false;
   }
 
-  bool PolyTrajOptimizer::allowRebound(void) //zxzxzx
+  bool PolyTrajOptimizer::allowRebound(void) // zxzxzx
   {
     // criterion 1
     if (iter_num_ < 3)
@@ -886,7 +887,7 @@ namespace ego_planner
         if (occ_start_id == -1 || occ_end_id == -1)
         {
           // It means that the first or the last control points of one segment are in obstacles, which is not allowed.
-          // ROS_WARN("What? occ_start_id=%d, occ_end_id=%d", occ_start_id, occ_end_id);
+          // RCLCPP_WARN(node_->get_logger(), "What? occ_start_id=%d, occ_end_id=%d", occ_start_id, occ_end_id);
 
           segments.erase(segments.begin() + i);
           RichInfoSegs.erase(RichInfoSegs.begin() + i);
@@ -903,7 +904,7 @@ namespace ego_planner
           if (RichInfoSegs[i].first.base_point[j].size() != 1)
           {
             cout << "RichInfoSegs[" << i << "].first.base_point[" << j << "].size()=" << RichInfoSegs[i].first.base_point[j].size() << endl;
-            ROS_ERROR("Wrong number of base_points!!! Should not be happen!.");
+            RCLCPP_ERROR(node_->get_logger(), "Wrong number of base_points!!! Should not be happen!.");
 
             cout << setprecision(5);
             cout << "cps_" << endl;
@@ -912,7 +913,7 @@ namespace ego_planner
             {
               if (cps_.base_point[temp_i].size() > 1 && cps_.base_point[temp_i].size() < 1000)
               {
-                ROS_ERROR("Should not happen!!!");
+                RCLCPP_ERROR(node_->get_logger(), "Should not happen!!!");
                 cout << "######" << cps_.points.col(temp_i).transpose() << endl;
                 for (size_t temp_j = 0; temp_j < cps_.base_point[temp_i].size(); temp_j++)
                   cout << "      " << cps_.base_point[temp_i][temp_j].transpose() << " @ " << cps_.direction[temp_i][temp_j].transpose() << endl;
@@ -955,7 +956,7 @@ namespace ego_planner
             }
             if (l > l_upbound)
             {
-              ROS_WARN_COND(VERBOSE_OUTPUT, "Can't find the new base points at the opposite within the threshold. i=%d, j=%d", i, j);
+              RCLCPP_WARN(node_->get_logger(), "Can't find the new base points at the opposite within the threshold. i=%d, j=%d", i, j);
 
               segments.erase(segments.begin() + i);
               RichInfoSegs.erase(RichInfoSegs.begin() + i);
@@ -972,7 +973,7 @@ namespace ego_planner
           }
           else
           {
-            ROS_WARN_COND(VERBOSE_OUTPUT, "base_point and control point are too close!");
+            RCLCPP_WARN(node_->get_logger(), "base_point and control point are too close!");
             if (VERBOSE_OUTPUT)
               cout << "base_point=" << RichInfoSegs[i].first.base_point[j][0].transpose() << " control point=" << RichInfoSegs[i].first.points.col(j).transpose() << endl;
 
@@ -1023,7 +1024,7 @@ namespace ego_planner
           }
           if (l > l_upbound)
           {
-            ROS_WARN_COND(VERBOSE_OUTPUT, "Can't find the new base points at the opposite within the threshold, 2. i=%d", i);
+            RCLCPP_WARN(node_->get_logger(), "Can't find the new base points at the opposite within the threshold, 2. i=%d", i);
 
             segments.erase(segments.begin() + i);
             RichInfoSegs.erase(RichInfoSegs.begin() + i);
@@ -1038,7 +1039,7 @@ namespace ego_planner
         }
         else
         {
-          ROS_WARN_COND(VERBOSE_OUTPUT, "base_point and control point are too close!, 2");
+          RCLCPP_WARN(node_->get_logger(), "base_point and control point are too close!, 2");
           if (VERBOSE_OUTPUT)
             cout << "base_point=" << RichInfoSegs[i].first.base_point[0][0].transpose() << " control point=" << RichInfoSegs[i].first.points.col(0).transpose() << endl;
 
@@ -1073,7 +1074,7 @@ namespace ego_planner
         digit_id++;
         if (digit_id >= seg_upbound)
         {
-          ROS_ERROR("Should not happen!!! digit_id=%d, seg_upbound=%d", digit_id, seg_upbound);
+          RCLCPP_ERROR(node_->get_logger(), "Should not happen!!! digit_id=%d, seg_upbound=%d", digit_id, seg_upbound);
         }
         selection[digit_id]++;
       }
@@ -1124,8 +1125,8 @@ namespace ego_planner
         }
         else
         {
-          ROS_ERROR("Shold not happen!!!!, cp_id=%d, seg_id=%d, segments.front().first=%d, segments.back().second=%d, segments[seg_id].first=%d, segments[seg_id].second=%d",
-                    cp_id, seg_id, segments.front().first, segments.back().second, segments[seg_id].first, segments[seg_id].second);
+          RCLCPP_ERROR(node_->get_logger(), "Shold not happen!!!!, cp_id=%d, seg_id=%d, segments.front().first=%d, segments.back().second=%d, segments[seg_id].first=%d, segments[seg_id].second=%d",
+                       cp_id, seg_id, segments.front().first, segments.back().second, segments[seg_id].first, segments[seg_id].second);
         }
 
         cp_id++;
@@ -1468,7 +1469,7 @@ namespace ego_planner
       }
 
       double traj_i_satrt_time = swarm_trajs_->at(id).start_time;
-      double pt_time = (t_now_ - traj_i_satrt_time) + t; // never assign a high-precision golbal time to a double directly!
+      double pt_time = (t_now_ - traj_i_satrt_time) + t;                                      // never assign a high-precision golbal time to a double directly!
       const double CLEARANCE = (swarm_clearance_ + swarm_trajs_->at(id).des_clearance) * 1.5; // 1.5 is to compensate slight constraint violation
       const double CLEARANCE2 = CLEARANCE * CLEARANCE;
 
@@ -1613,21 +1614,36 @@ namespace ego_planner
   }
 
   /* helper functions */
-  void PolyTrajOptimizer::setParam(ros::NodeHandle &nh)
+  void PolyTrajOptimizer::setParam(rclcpp::Node::SharedPtr node)
   {
-    nh.param("optimization/constraint_points_perPiece", cps_num_prePiece_, -1);
-    nh.param("optimization/weight_obstacle", wei_obs_, -1.0);
-    nh.param("optimization/weight_obstacle_soft", wei_obs_soft_, -1.0);
-    nh.param("optimization/weight_swarm", wei_swarm_, -1.0);
-    nh.param("optimization/weight_feasibility", wei_feas_, -1.0);
-    nh.param("optimization/weight_sqrvariance", wei_sqrvar_, -1.0);
-    nh.param("optimization/weight_time", wei_time_, -1.0);
-    nh.param("optimization/obstacle_clearance", obs_clearance_, -1.0);
-    nh.param("optimization/obstacle_clearance_soft", obs_clearance_soft_, -1.0);
-    nh.param("optimization/swarm_clearance", swarm_clearance_, -1.0);
-    nh.param("optimization/max_vel", max_vel_, -1.0);
-    nh.param("optimization/max_acc", max_acc_, -1.0);
-    nh.param("optimization/max_jer", max_jer_, -1.0);
+    node_ = node;
+    node->declare_parameter("optimization/constraint_points_perPiece", -1);
+    node->declare_parameter("optimization/weight_obstacle", -1.0);
+    node->declare_parameter("optimization/weight_obstacle_soft", -1.0);
+    node->declare_parameter("optimization/weight_swarm", -1.0);
+    node->declare_parameter("optimization/weight_feasibility", -1.0);
+    node->declare_parameter("optimization/weight_sqrvariance", -1.0);
+    node->declare_parameter("optimization/weight_time", -1.0);
+    node->declare_parameter("optimization/obstacle_clearance", -1.0);
+    node->declare_parameter("optimization/obstacle_clearance_soft", -1.0);
+    node->declare_parameter("optimization/swarm_clearance", -1.0);
+    node->declare_parameter("optimization/max_vel", -1.0);
+    node->declare_parameter("optimization/max_acc", -1.0);
+    node->declare_parameter("optimization/max_jer", -1.0);
+
+    node->get_parameter("optimization/constraint_points_perPiece", cps_num_prePiece_);
+    node->get_parameter("optimization/weight_obstacle", wei_obs_);
+    node->get_parameter("optimization/weight_obstacle_soft", wei_obs_soft_);
+    node->get_parameter("optimization/weight_swarm", wei_swarm_);
+    node->get_parameter("optimization/weight_feasibility", wei_feas_);
+    node->get_parameter("optimization/weight_sqrvariance", wei_sqrvar_);
+    node->get_parameter("optimization/weight_time", wei_time_);
+    node->get_parameter("optimization/obstacle_clearance", obs_clearance_);
+    node->get_parameter("optimization/obstacle_clearance_soft", obs_clearance_soft_);
+    node->get_parameter("optimization/swarm_clearance", swarm_clearance_);
+    node->get_parameter("optimization/max_vel", max_vel_);
+    node->get_parameter("optimization/max_acc", max_acc_);
+    node->get_parameter("optimization/max_jer", max_jer_);
   }
 
   void PolyTrajOptimizer::setEnvironment(const GridMap::Ptr &map)

@@ -1,19 +1,15 @@
 #include <Eigen/Eigen>
-#include <ros/ros.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <iostream>
-#include <sensor_msgs/Joy.h>
-#include <nav_msgs/Odometry.h>
-#include <traj_utils/MINCOTraj.h>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/joy.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <traj_utils/msg/minco_traj.hpp>
 #include <traj_utils/planning_visualization.h>
 #include <optimizer/poly_traj_utils.hpp>
 
 using namespace std;
 
-ros::Publisher obs1_odom_pub_, obs2_odom_pub_, traj_pub_, predicted_traj_pub_;
+rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr obs1_odom_pub_, obs2_odom_pub_;
+rclcpp::Publisher<traj_utils::msg::MINCOTraj>::SharedPtr predicted_traj_pub_;
 
 double obs1_id_, obs2_id_;
 
@@ -25,10 +21,9 @@ private:
   Eigen::Vector2d pos_{Eigen::Vector2d::Zero()};
   Eigen::Vector2d vel_{Eigen::Vector2d::Zero()};
   double yaw_{0};
-  ros::Time t_last_update_{ros::Time(0)};
+  rclcpp::Time t_last_update_{0, 0, RCL_ROS_TIME};
 
 public:
-
   double des_clearance_;
 
   moving_obstacle(){};
@@ -45,7 +40,7 @@ public:
   {
     Eigen::Vector2d acc_vec = acc * Eigen::Vector2d(cos(yaw), sin(yaw));
     vel += acc_vec * delta_t;
-    vel *= 0.9; // gradually stop like a real obstacle
+    vel *= 0.9;
     constexpr double MAX_VEL = 2.0;
     if (vel.norm() > MAX_VEL)
     {
@@ -57,13 +52,13 @@ public:
 
   std::pair<Eigen::Vector2d, Eigen::Vector2d> update(const double acc, const double dir)
   {
-    ros::Time t_now = ros::Time::now();
-    if (t_last_update_ == ros::Time(0))
+    auto t_now = rclcpp::Clock().now();
+    if (t_last_update_.nanoseconds() == 0)
     {
       t_last_update_ = t_now;
     }
 
-    double delta_t = (t_now - t_last_update_).toSec();
+    double delta_t = (t_now - t_last_update_).seconds();
     dyn_update(delta_t, acc, dir, yaw_, pos_, vel_);
 
     t_last_update_ = t_now;
@@ -116,17 +111,16 @@ poly_traj::Trajectory predict_traj(const double acc, const double dir, const Eig
   return predicted_traj.getTraj();
 }
 
-void Traj2ROSMsg(const poly_traj::Trajectory &traj, const double des_clear, const int obstacle_id, traj_utils::MINCOTraj &MINCO_msg)
+void Traj2ROSMsg(const poly_traj::Trajectory &traj, const double des_clear, const int obstacle_id, traj_utils::msg::MINCOTraj &MINCO_msg)
 {
-
   Eigen::VectorXd durs = traj.getDurations();
   int piece_num = traj.getPieceNum();
   double duration = durs.sum();
 
   MINCO_msg.drone_id = obstacle_id;
   MINCO_msg.traj_id = 0;
-  MINCO_msg.start_time = ros::Time::now();
-  MINCO_msg.order = 5; // todo, only support order = 5 now.
+  MINCO_msg.start_time = rclcpp::Clock().now();
+  MINCO_msg.order = 5;
   MINCO_msg.duration.resize(piece_num);
   MINCO_msg.des_clearance = des_clear;
   Eigen::Vector3d vec;
@@ -156,103 +150,97 @@ void Traj2ROSMsg(const poly_traj::Trajectory &traj, const double des_clear, cons
     MINCO_msg.duration[i] = durs[i];
 }
 
-// #      ^                ^
-// #    +1|              +4|
-// # <-+0      ->     <-+3      ->
-// #      |                |
-// #      V                V
-
-void joy_sub_cb(const sensor_msgs::Joy::ConstPtr &msg)
+class MovingObstaclesNode : public rclcpp::Node
 {
-  ros::Time t_now = ros::Time::now();
+public:
+  MovingObstaclesNode() : Node("moving_obstacles")
+  {
+    obs1_odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odom_obs1", 10);
+    obs2_odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odom_obs2", 10);
+    predicted_traj_pub_ = this->create_publisher<traj_utils::msg::MINCOTraj>("/broadcast_traj_to_planner", 10);
 
-  double acc1 = msg->axes[1] * 2;
-  double dir1 = msg->axes[0] / 3;
-  double acc2 = msg->axes[4] * 2;
-  double dir2 = msg->axes[3] / 3;
-  if (acc1 < 0)
-    dir1 = -dir1;
-  if (acc2 < 0)
-    dir2 = -dir2;
+    joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
+      "joy", 10, std::bind(&MovingObstaclesNode::joy_sub_cb, this, std::placeholders::_1));
 
-  auto pv1 = obs1_.update(acc1, dir1);
-  auto pv2 = obs2_.update(acc2, dir2);
+    visualization_.reset(new ego_planner::PlanningVisualization(this->shared_from_this()));
 
-  constexpr double HEIGHT = 1.0;
+    std::vector<double> init_pos;
+    this->get_parameter("obstacle1_init_pos", init_pos);
+    obs1_.set_position(Eigen::Vector2d(init_pos[0], init_pos[1]));
+    this->get_parameter("desired_clearance1", obs1_.des_clearance_);
+    this->get_parameter("obstacle2_init_pos", init_pos);
+    obs2_.set_position(Eigen::Vector2d(init_pos[0], init_pos[1]));
+    this->get_parameter("desired_clearance2", obs2_.des_clearance_);
+    this->get_parameter("obstacle1_id", obs1_id_);
+    this->get_parameter("obstacle2_id", obs2_id_);
+  }
 
-  // publish odometry
-  nav_msgs::Odometry odom_msg;
-  odom_msg.header.stamp = t_now;
-  odom_msg.header.frame_id = "world";
-  odom_msg.pose.pose.position.z = HEIGHT;
-  odom_msg.twist.twist.linear.z = 0.0;
-  odom_msg.pose.pose.orientation.x = 0.0;
-  odom_msg.pose.pose.orientation.y = 0.0;
+private:
+  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
 
-  Eigen::Quaterniond q1(Eigen::AngleAxisd(obs1_.get_yaw(), Eigen::Vector3d::UnitZ()));
-  odom_msg.pose.pose.position.x = pv1.first(0);
-  odom_msg.pose.pose.position.y = pv1.first(1);
-  odom_msg.twist.twist.linear.x = pv1.second(0);
-  odom_msg.twist.twist.linear.y = pv1.second(1);
-  odom_msg.pose.pose.orientation.w = q1.w();
-  odom_msg.pose.pose.orientation.z = q1.z();
-  obs1_odom_pub_.publish(odom_msg);
-  ros::Duration(0.005).sleep();
+  void joy_sub_cb(const sensor_msgs::msg::Joy::SharedPtr msg)
+  {
+    auto t_now = this->now();
 
-  Eigen::Quaterniond q2(Eigen::AngleAxisd(obs2_.get_yaw(), Eigen::Vector3d::UnitZ()));
-  odom_msg.pose.pose.position.x = pv2.first(0);
-  odom_msg.pose.pose.position.y = pv2.first(1);
-  odom_msg.twist.twist.linear.x = pv2.second(0);
-  odom_msg.twist.twist.linear.y = pv2.second(1);
-  odom_msg.pose.pose.orientation.w = q2.w();
-  odom_msg.pose.pose.orientation.z = q2.z();
-  obs2_odom_pub_.publish(odom_msg);
-  ros::Duration(0.005).sleep();
+    double acc1 = msg->axes[1] * 2;
+    double dir1 = msg->axes[0] / 3;
+    double acc2 = msg->axes[4] * 2;
+    double dir2 = msg->axes[3] / 3;
+    if (acc1 < 0)
+      dir1 = -dir1;
+    if (acc2 < 0)
+      dir2 = -dir2;
 
-  // publish predicted trajectory
-  traj_utils::MINCOTraj MINCO_msg;
-  vector<Eigen::Vector3d> vis_pts;
-  poly_traj::Trajectory traj1 = predict_traj(acc1, dir1, Eigen::Vector3d(pv1.first[0], pv1.first[1], HEIGHT), Eigen::Vector3d(pv1.second[0], pv1.second[1], 0), obs1_, vis_pts);
-  Traj2ROSMsg(traj1, obs1_.des_clearance_, obs1_id_, MINCO_msg);
-  predicted_traj_pub_.publish(MINCO_msg);
-  ros::Duration(0.005).sleep();
-  visualization_->displayInitPathList(vis_pts, 0.1, obs1_id_);
-  ros::Duration(0.005).sleep();
+    auto pv1 = obs1_.update(acc1, dir1);
+    auto pv2 = obs2_.update(acc2, dir2);
 
-  poly_traj::Trajectory traj2 = predict_traj(acc2, dir2, Eigen::Vector3d(pv2.first[0], pv2.first[1], HEIGHT), Eigen::Vector3d(pv2.second[0], pv2.second[1], 0), obs2_, vis_pts);
-  Traj2ROSMsg(traj2, obs2_.des_clearance_, obs2_id_, MINCO_msg);
-  predicted_traj_pub_.publish(MINCO_msg);
-  ros::Duration(0.005).sleep();
-  visualization_->displayInitPathList(vis_pts, 0.1, obs2_id_);
-}
+    constexpr double HEIGHT = 1.0;
+
+    nav_msgs::msg::Odometry odom_msg;
+    odom_msg.header.stamp = t_now;
+    odom_msg.header.frame_id = "world";
+    odom_msg.pose.pose.position.z = HEIGHT;
+    odom_msg.twist.twist.linear.z = 0.0;
+    odom_msg.pose.pose.orientation.x = 0.0;
+    odom_msg.pose.pose.orientation.y = 0.0;
+
+    Eigen::Quaterniond q1(Eigen::AngleAxisd(obs1_.get_yaw(), Eigen::Vector3d::UnitZ()));
+    odom_msg.pose.pose.position.x = pv1.first(0);
+    odom_msg.pose.pose.position.y = pv1.first(1);
+    odom_msg.twist.twist.linear.x = pv1.second(0);
+    odom_msg.twist.twist.linear.y = pv1.second(1);
+    odom_msg.pose.pose.orientation.w = q1.w();
+    odom_msg.pose.pose.orientation.z = q1.z();
+    obs1_odom_pub_->publish(odom_msg);
+
+    Eigen::Quaterniond q2(Eigen::AngleAxisd(obs2_.get_yaw(), Eigen::Vector3d::UnitZ()));
+    odom_msg.pose.pose.position.x = pv2.first(0);
+    odom_msg.pose.pose.position.y = pv2.first(1);
+    odom_msg.twist.twist.linear.x = pv2.second(0);
+    odom_msg.twist.twist.linear.y = pv2.second(1);
+    odom_msg.pose.pose.orientation.w = q2.w();
+    odom_msg.pose.pose.orientation.z = q2.z();
+    obs2_odom_pub_->publish(odom_msg);
+
+    traj_utils::msg::MINCOTraj MINCO_msg;
+    vector<Eigen::Vector3d> vis_pts;
+    poly_traj::Trajectory traj1 = predict_traj(acc1, dir1, Eigen::Vector3d(pv1.first[0], pv1.first[1], HEIGHT), Eigen::Vector3d(pv1.second[0], pv1.second[1], 0), obs1_, vis_pts);
+    Traj2ROSMsg(traj1, obs1_.des_clearance_, obs1_id_, MINCO_msg);
+    predicted_traj_pub_->publish(MINCO_msg);
+    visualization_->displayInitPathList(vis_pts, 0.1, obs1_id_);
+
+    poly_traj::Trajectory traj2 = predict_traj(acc2, dir2, Eigen::Vector3d(pv2.first[0], pv2.first[1], HEIGHT), Eigen::Vector3d(pv2.second[0], pv2.second[1], 0), obs2_, vis_pts);
+    Traj2ROSMsg(traj2, obs2_.des_clearance_, obs2_id_, MINCO_msg);
+    predicted_traj_pub_->publish(MINCO_msg);
+    visualization_->displayInitPathList(vis_pts, 0.1, obs2_id_);
+  }
+};
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "moving_obstacles");
-  ros::NodeHandle nh("~");
-
-  obs1_odom_pub_ = nh.advertise<nav_msgs::Odometry>("odom_obs1", 10);
-  obs2_odom_pub_ = nh.advertise<nav_msgs::Odometry>("odom_obs2", 10);
-  predicted_traj_pub_ = nh.advertise<traj_utils::MINCOTraj>("/broadcast_traj_to_planner", 10);
-  ros::Subscriber joy_sub = nh.subscribe<sensor_msgs::Joy>("joy", 10, joy_sub_cb);
-
-  visualization_.reset(new ego_planner::PlanningVisualization(nh));
-
-  std::vector<double> init_pos;
-  nh.getParam("obstacle1_init_pos", init_pos);
-  obs1_.set_position(Eigen::Vector2d(init_pos[0], init_pos[1]));
-  nh.getParam("desired_clearance1", obs1_.des_clearance_);
-  nh.getParam("obstacle2_init_pos", init_pos);
-  obs2_.set_position(Eigen::Vector2d(init_pos[0], init_pos[1]));
-  nh.getParam("desired_clearance2", obs2_.des_clearance_);
-  nh.getParam("obstacle1_id", obs1_id_);
-  nh.getParam("obstacle2_id", obs2_id_);
-
-  while (ros::ok())
-  {
-    ros::Duration(0.01).sleep();
-    ros::spinOnce();
-  }
-
+  rclcpp::init(argc, argv);
+  auto node = std::make_shared<MovingObstaclesNode>();
+  rclcpp::spin(node);
+  rclcpp::shutdown();
   return 0;
 }

@@ -4,7 +4,7 @@
 #include <Eigen/Eigen>
 #include <path_searching/dyn_a_star.h>
 #include <plan_env/grid_map.h>
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include "optimizer/lbfgs.hpp"
 #include <traj_utils/plan_container.hpp>
 #include "poly_traj_utils.hpp"
@@ -39,7 +39,7 @@ namespace ego_planner
     {
       if (start < 0 || end >= cp_size || points.rows() != 3)
       {
-        ROS_ERROR("Wrong segment index! start=%d, end=%d", start, end);
+        cout << "Error: Wrong segment index! start=" << start << ", end=" << end << endl;
         return;
       }
 
@@ -115,7 +115,7 @@ namespace ego_planner
     };
 
     /* set variables */
-    void setParam(ros::NodeHandle &nh);
+    void setParam(rclcpp::Node::SharedPtr node);
     void setEnvironment(const GridMap::Ptr &map);
     void setControlPoints(const Eigen::MatrixXd &points);
     void setSwarmTrajs(SwarmTrajData *swarm_trajs_ptr);
@@ -152,6 +152,7 @@ namespace ego_planner
     std::vector<ConstraintPoints> distinctiveTrajs(vector<std::pair<int, int>> segments);
 
   private:
+    rclcpp::Node::SharedPtr node_;
     /* callbacks by the L-BFGS optimizer */
     static double costFunctionCallback(void *func_data, const double *x, double *grad, const int n);
 

@@ -56,20 +56,37 @@ ament_export_include_directories(include)
 
 link_directories(${PCL_LIBRARY_DIRS})
 
-add_library( traj_utils_lib SHARED
-    src/planning_visualization.cpp 
+add_library(traj_utils_lib SHARED
+  src/planning_visualization.cpp
 )
 
-ament_target_dependencies(traj_utils_lib std_msgs geometry_msgs visualization_msgs rclcpp Eigen3 PCL)
+ament_target_dependencies(traj_utils_lib
+  rclcpp
+  std_msgs
+  geometry_msgs
+  visualization_msgs
+  Eigen3
+  PCL
+)
 
 install(TARGETS traj_utils_lib
-        DESTINATION lib
+  EXPORT export_traj_utils_lib
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
+
+install(DIRECTORY include/
+  DESTINATION include
+)
+
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION include/${PROJECT_NAME}/${PROJECT_NAME}
 )
 
-ament_export_libraries(traj_utils_lib)
+ament_export_targets(export_traj_utils_lib HAS_LIBRARY_TARGET)
+ament_export_dependencies(rclcpp std_msgs geometry_msgs visualization_msgs Eigen3 PCL)
 
 ament_package()
