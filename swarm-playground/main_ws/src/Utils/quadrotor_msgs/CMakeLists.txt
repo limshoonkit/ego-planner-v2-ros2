@@ -21,6 +21,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AuxCommand.msg"
   "msg/Corrections.msg"
   "msg/Gains.msg"
+  "msg/GoalSet.msg"
   "msg/LQRTrajectory.msg"
   "msg/OutputData.msg"
   "msg/PositionCommand.msg"

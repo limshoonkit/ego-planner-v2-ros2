@@ -1,22 +1,26 @@
 #include <Eigen/Eigen>
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <iostream>
-#include <quadrotor_msgs/GoalSet.h>
-#include <nav_msgs/Odometry.h>
-#include <uav_utils/geometry_utils.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <visualization_msgs/MarkerArray.h>
+#include <quadrotor_msgs/msg/goal_set.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 
 using namespace std;
 
-// ros::Subscriber trajs_sub_;
-ros::Publisher goals_pub_, new_goals_arrow_pub_;
-ros::Time last_publish_time_;
-bool need_clear_;
+// Global variables for node functionality
+rclcpp::Node::SharedPtr node_;
+rclcpp::Publisher<quadrotor_msgs::msg::GoalSet>::SharedPtr goals_pub_;
+rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr new_goals_arrow_pub_;
+rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr selected_drones_sub_;
+rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr user_goal_sub_;
+
+rclcpp::Time last_publish_time_;
+bool need_clear_ = false;
 
 struct Selected_t
 {
@@ -29,20 +33,17 @@ void displayArrowList(const vector<Eigen::Vector3d> &start, const vector<Eigen::
 {
   if (start.size() != end.size())
   {
-    ROS_ERROR("start.size() != end.size(), return");
+    RCLCPP_ERROR(node_->get_logger(), "start.size() != end.size(), return");
     return;
   }
 
-  visualization_msgs::MarkerArray array;
+  visualization_msgs::msg::MarkerArray array;
 
-  visualization_msgs::Marker arrow;
+  visualization_msgs::msg::Marker arrow;
   arrow.header.frame_id = "world";
-  arrow.header.stamp = ros::Time::now();
-  arrow.type = visualization_msgs::Marker::ARROW;
+  arrow.header.stamp = node_->get_clock()->now();
+  arrow.type = visualization_msgs::msg::Marker::ARROW;
   arrow.action = action;
-
-  // geometry_msgs::Point start, end;
-  // arrow.points
 
   arrow.color.r = 0;
   arrow.color.g = 0;
@@ -54,7 +55,7 @@ void displayArrowList(const vector<Eigen::Vector3d> &start, const vector<Eigen::
 
   for (int i = 0; i < int(start.size()); i++)
   {
-    geometry_msgs::Point st, ed;
+    geometry_msgs::msg::Point st, ed;
     st.x = start[i](0);
     st.y = start[i](1);
     st.z = start[i](2);
@@ -69,14 +70,14 @@ void displayArrowList(const vector<Eigen::Vector3d> &start, const vector<Eigen::
     array.markers.push_back(arrow);
   }
 
-  new_goals_arrow_pub_.publish(array);
+  new_goals_arrow_pub_->publish(array);
 }
 
-void selected_drones_cb(const geometry_msgs::PoseStamped::ConstPtr &msg)
+void selected_drones_cb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
-  static ros::Time last_select_time = ros::Time(0);
-  ros::Time t_now = ros::Time::now();
-  if ((t_now - last_select_time).toSec() > 2)
+  static rclcpp::Time last_select_time = rclcpp::Time(0);
+  rclcpp::Time t_now = node_->get_clock()->now();
+  if ((t_now - last_select_time).seconds() > 2.0)
   {
     drones_.clear();
   }
@@ -91,7 +92,7 @@ void selected_drones_cb(const geometry_msgs::PoseStamped::ConstPtr &msg)
   last_select_time = t_now;
 }
 
-void user_goal_cb(const geometry_msgs::PoseStamped::ConstPtr &msg)
+void user_goal_cb(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
   Eigen::Vector3d center = Eigen::Vector3d::Zero();
   for (size_t i = 0; i < drones_.size(); ++i)
@@ -112,50 +113,65 @@ void user_goal_cb(const geometry_msgs::PoseStamped::ConstPtr &msg)
     cout << "drone " << drones_[i].drone_id << ", start=" << drones_[i].p.transpose() << ", end=" << each_one_goals[i].transpose() << endl;
   }
 
-  displayArrowList(each_one_starts, each_one_goals, 0.05, 0, visualization_msgs::Marker::ADD);
-  last_publish_time_ = ros::Time::now();
+  displayArrowList(each_one_starts, each_one_goals, 0.05, 0, visualization_msgs::msg::Marker::ADD);
+  last_publish_time_ = node_->get_clock()->now();
   need_clear_ = true;
 
   for (size_t i = 0; i < drones_.size(); ++i)
   {
-    quadrotor_msgs::GoalSet goal_msg;
+    quadrotor_msgs::msg::GoalSet goal_msg;
     goal_msg.drone_id = drones_[i].drone_id;
     goal_msg.goal[0] = each_one_goals[i](0);
     goal_msg.goal[1] = each_one_goals[i](1);
     goal_msg.goal[2] = each_one_goals[i](2);
-    goals_pub_.publish(goal_msg);
-    ros::Duration(0.01).sleep();
+    goals_pub_->publish(goal_msg);
+    rclcpp::sleep_for(std::chrono::milliseconds(10));
   }
 }
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "assign_goals");
-  ros::NodeHandle nh("~");
+  rclcpp::init(argc, argv);
+  
+  // Create node
+  node_ = rclcpp::Node::make_shared("assign_goals");
 
-  srand(floor(ros::Time::now().toSec() * 10));
+  // Seed random number generator
+  srand(floor(node_->get_clock()->now().seconds() * 10));
 
-  ros::Subscriber selected_drones_sub = nh.subscribe<geometry_msgs::PoseStamped>("/rviz_selected_drones", 100, selected_drones_cb);
-  ros::Subscriber user_goal_sub = nh.subscribe<geometry_msgs::PoseStamped>("/goal", 10, user_goal_cb);
+  // Create subscriptions
+  selected_drones_sub_ = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/rviz_selected_drones", 100, selected_drones_cb);
+  
+  user_goal_sub_ = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/goal", 10, user_goal_cb);
 
-  goals_pub_ = nh.advertise<quadrotor_msgs::GoalSet>("/goal_user2brig", 10);
-  new_goals_arrow_pub_ = nh.advertise<visualization_msgs::MarkerArray>("/new_goals_arrow", 10);
+  // Create publishers
+  goals_pub_ = node_->create_publisher<quadrotor_msgs::msg::GoalSet>("/goal_user2brig", 10);
+  new_goals_arrow_pub_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>("/new_goals_arrow", 10);
 
-  ROS_INFO("[assign_goals_node]Start running.");
-  while (ros::ok())
+  // Initialize time
+  last_publish_time_ = node_->get_clock()->now();
+
+  RCLCPP_INFO(node_->get_logger(), "[assign_goals_node] Start running.");
+  
+  // Main loop
+  rclcpp::Rate rate(100); // 100 Hz
+  while (rclcpp::ok())
   {
-    if (need_clear_ && (ros::Time::now() - last_publish_time_).toSec() > 2)
+    if (need_clear_ && (node_->get_clock()->now() - last_publish_time_).seconds() > 2.0)
     {
       need_clear_ = false;
       std::vector<Eigen::Vector3d> blank(1);
       blank[0] = Eigen::Vector3d::Zero();
-      displayArrowList(blank, blank, 0.05, 0, visualization_msgs::Marker::DELETEALL);
+      displayArrowList(blank, blank, 0.05, 0, visualization_msgs::msg::Marker::DELETEALL);
       cout << "DELETEALL Arrows." << endl;
     }
 
-    ros::Duration(0.01).sleep();
-    ros::spinOnce();
+    rclcpp::spin_some(node_);
+    rate.sleep();
   }
 
+  rclcpp::shutdown();
   return 0;
 }
