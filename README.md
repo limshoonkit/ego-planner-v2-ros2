@@ -7,4 +7,6 @@ The main_ws has been updated to match ros2 syntax as closely as possible while r
 ```
 cd swarm-playground/main_ws
 colcon build --symlink-install
+source install/setup.bash
+ros2 launch ego_planner single_drone_interactive.launch
 ```
