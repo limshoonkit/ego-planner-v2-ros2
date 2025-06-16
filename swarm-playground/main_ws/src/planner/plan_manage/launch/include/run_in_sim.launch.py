@@ -86,8 +86,9 @@ def generate_launch_description():
         name=['drone_', drone_id, '_traj_server'],
         output='screen',
         remappings=[
-            ('position_cmd', ['drone_', drone_id, '_planning/pos_cmd']),
-            ('planning/trajectory', ['drone_', drone_id, '_planning/trajectory'])
+            ('position_cmd', ['/drone_', drone_id, '_planning/pos_cmd']),
+            ('planning/trajectory', ['/drone_', drone_id, '_planning/trajectory']),
+            ('planning/heartbeat', ['/drone_', drone_id, '_traj_server/heartbeat']),
         ],
         parameters=[{
             'traj_server/time_forward': 1.0
@@ -164,7 +165,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(take_over_launch),
         launch_arguments={
             'drone_id': drone_id,
-            'cmd_topic': ['drone_', drone_id, '_planning/pos_cmd'],
+            'cmd_topic': ['/drone_', drone_id, '_planning/pos_cmd'],
         }.items()
     )
     

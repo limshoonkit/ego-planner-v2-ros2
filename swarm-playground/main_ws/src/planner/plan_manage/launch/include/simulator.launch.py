@@ -48,8 +48,8 @@ def generate_launch_description():
             {'init_z': init_z}
         ],
         remappings=[
-            ('command', ['drone_', drone_id, '_planning/pos_cmd']),
-            ('odometry', ['drone_', drone_id, '_', odometry_topic])
+            ('command', ['/drone_', drone_id, '_planning/pos_cmd']),
+            ('odometry', ['/drone_', drone_id, '_', odometry_topic]),
         ],
     )
 
@@ -60,17 +60,17 @@ def generate_launch_description():
         name=['drone_', drone_id, '_odom_visualization'],
         output='screen',
         remappings=[
-            ('odom', ['drone_', drone_id, '_visual_slam/odom']),
-            ('robot', ['drone_', drone_id, '_vis/robot']),
-            ('path', ['drone_', drone_id, '_vis/path']),
-            ('time_gap', ['drone_', drone_id, '_vis/time_gap']),
+            ('odom', ['/drone_', drone_id, '_', odometry_topic]),
+            ('robot', ['/drone_', drone_id, '_vis/robot']),
+            ('path', ['/drone_', drone_id, '_vis/path']),
+            ('time_gap', ['/drone_', drone_id, '_vis/time_gap']),
             # ('pose', ['drone_', drone_id, '_vis/pose']),
             # ('velocity', ['drone_', drone_id, '_vis/velocity']),
             # ('covariance', ['drone_', drone_id, '_vis/covariance']),
             # ('covariance_velocity', ['drone_', drone_id, '_vis/covariance_velocity']),
-            ('trajectory', ['drone_', drone_id, '_vis/trajectory']),
-            ('sensor', ['drone_', drone_id, '_vis/sensor']),
-            ('height', ['drone_', drone_id, '_vis/height']),
+            # ('trajectory', ['drone_', drone_id, '_vis/trajectory']),
+            # ('sensor', ['drone_', drone_id, '_vis/sensor']),
+            # ('height', ['drone_', drone_id, '_vis/height']),
         ],
         parameters=[
             {'color/a': 1.0},
