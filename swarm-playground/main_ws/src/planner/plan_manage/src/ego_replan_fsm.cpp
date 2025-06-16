@@ -763,10 +763,11 @@ namespace ego_planner
     auto data = &planner_manager_->traj_.local_traj;
     Eigen::VectorXd durs = data->traj.getDurations();
     int piece_num = data->traj.getPieceNum();
-
+    double secs = data->start_time;
+    uint64_t nsecs = static_cast<uint64_t>(secs * 1e9);
     poly_msg.drone_id = planner_manager_->pp_.drone_id;
     poly_msg.traj_id = data->traj_id;
-    poly_msg.start_time = rclcpp::Time(data->start_time);
+    poly_msg.start_time = rclcpp::Time(nsecs);
     poly_msg.order = 5; // todo, only support order = 5 now.
     poly_msg.duration.resize(piece_num);
     poly_msg.coef_x.resize(6 * piece_num);
@@ -788,7 +789,7 @@ namespace ego_planner
 
     MINCO_msg.drone_id = planner_manager_->pp_.drone_id;
     MINCO_msg.traj_id = data->traj_id;
-    MINCO_msg.start_time = rclcpp::Time(data->start_time);
+    MINCO_msg.start_time = rclcpp::Time(nsecs);
     MINCO_msg.order = 5; // todo, only support order = 5 now.
     MINCO_msg.duration.resize(piece_num);
     Eigen::Vector3d vec;

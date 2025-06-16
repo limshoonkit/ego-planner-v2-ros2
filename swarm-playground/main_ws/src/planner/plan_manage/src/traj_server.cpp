@@ -22,7 +22,7 @@ public:
     poly_traj_sub_ = this->create_subscription<traj_utils::msg::PolyTraj>(
       "planning/trajectory", 10, std::bind(&TrajServer::polyTrajCallback, this, _1));
     heartbeat_sub_ = this->create_subscription<std_msgs::msg::Empty>(
-      "heartbeat", 10, std::bind(&TrajServer::heartbeatCallback, this, _1));
+      "planning/heartbeat", 10, std::bind(&TrajServer::heartbeatCallback, this, _1));
 
     cmd_timer_ = this->create_wall_timer(
       std::chrono::milliseconds(10), std::bind(&TrajServer::cmdCallback, this));
@@ -88,7 +88,7 @@ private:
 
     traj_ = std::make_shared<poly_traj::Trajectory>(dura, cMats);
 
-    start_time_ = rclcpp::Time(msg->start_time);
+    start_time_ = msg->start_time;
     traj_duration_ = traj_->getTotalDuration();
     traj_id_ = msg->traj_id;
 
@@ -195,9 +195,12 @@ private:
       receive_traj_ = false;
       publish_cmd(last_pos_, Vector3d::Zero(), Vector3d::Zero(), Vector3d::Zero(), last_yaw_, 0);
     }
-
     double t_cur = (time_now - start_time_).seconds();
-
+    // std::cout << "[cmdCallback] start_time_: " << start_time_.seconds() << std::endl;
+    // std::cout << "[cmdCallback] time_now: " << time_now.seconds() << std::endl;
+    // std::cout << "[cmdCallback] t_cur: " << t_cur << std::endl;
+    // std::cout << "[cmdCallback] traj_duration_:" << traj_duration_ << std::endl;
+    
     Eigen::Vector3d pos(Eigen::Vector3d::Zero()), vel(Eigen::Vector3d::Zero()), acc(Eigen::Vector3d::Zero()), jer(Eigen::Vector3d::Zero());
     std::pair<double, double> yaw_yawdot(0, 0);
 

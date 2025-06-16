@@ -377,7 +377,8 @@ namespace ego_planner
     bool ret = ploy_traj_opt_->computePointsToCheck(traj, ConstraintPoints::two_thirds_id(cps, touch_goal), pts_to_check);
     if (ret && pts_to_check.size() >= 1 && pts_to_check.back().size() >= 1)
     {
-      traj_.setLocalTraj(traj, pts_to_check, node_->now().seconds());
+      auto time_now = node_->now().seconds();
+      traj_.setLocalTraj(traj, pts_to_check, time_now);
     }
 
     return ret;
