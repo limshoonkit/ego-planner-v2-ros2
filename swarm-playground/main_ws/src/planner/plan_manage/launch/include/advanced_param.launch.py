@@ -5,90 +5,83 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    # Declare launch arguments
-    drone_id_arg = DeclareLaunchArgument('drone_id')
-    map_size_x_arg = DeclareLaunchArgument('map_size_x_')
-    map_size_y_arg = DeclareLaunchArgument('map_size_y_')
-    map_size_z_arg = DeclareLaunchArgument('map_size_z_')
-    odometry_topic_arg = DeclareLaunchArgument('odometry_topic')
-    camera_pose_topic_arg = DeclareLaunchArgument('camera_pose_topic')
-    depth_topic_arg = DeclareLaunchArgument('depth_topic')
-    cloud_topic_arg = DeclareLaunchArgument('cloud_topic')
-    
-    # Camera intrinsic parameters
-    cx_arg = DeclareLaunchArgument('cx')
-    cy_arg = DeclareLaunchArgument('cy')
-    fx_arg = DeclareLaunchArgument('fx')
-    fy_arg = DeclareLaunchArgument('fy')
-    
-    # Motion parameters
-    max_vel_arg = DeclareLaunchArgument('max_vel')
-    max_acc_arg = DeclareLaunchArgument('max_acc')
-    max_jer_arg = DeclareLaunchArgument('max_jer')
-    planning_horizon_arg = DeclareLaunchArgument('planning_horizon')
-    use_multitopology_trajs_arg = DeclareLaunchArgument('use_multitopology_trajs')
-    
-    # Flight parameters
-    flight_type_arg = DeclareLaunchArgument('flight_type')
-    point_num_arg = DeclareLaunchArgument('point_num')
-    
-    # Waypoint parameters
-    point0_x_arg = DeclareLaunchArgument('point0_x')
-    point0_y_arg = DeclareLaunchArgument('point0_y')
-    point0_z_arg = DeclareLaunchArgument('point0_z')
-    point1_x_arg = DeclareLaunchArgument('point1_x')
-    point1_y_arg = DeclareLaunchArgument('point1_y')
-    point1_z_arg = DeclareLaunchArgument('point1_z')
-    point2_x_arg = DeclareLaunchArgument('point2_x')
-    point2_y_arg = DeclareLaunchArgument('point2_y')
-    point2_z_arg = DeclareLaunchArgument('point2_z')
-    point3_x_arg = DeclareLaunchArgument('point3_x')
-    point3_y_arg = DeclareLaunchArgument('point3_y')
-    point3_z_arg = DeclareLaunchArgument('point3_z')
-    point4_x_arg = DeclareLaunchArgument('point4_x')
-    point4_y_arg = DeclareLaunchArgument('point4_y')
-    point4_z_arg = DeclareLaunchArgument('point4_z')
-    
+
     # Get launch configurations
-    drone_id = LaunchConfiguration('drone_id')
-    map_size_x = LaunchConfiguration('map_size_x_')
-    map_size_y = LaunchConfiguration('map_size_y_')
-    map_size_z = LaunchConfiguration('map_size_z_')
-    odometry_topic = LaunchConfiguration('odometry_topic')
-    camera_pose_topic = LaunchConfiguration('camera_pose_topic')
-    depth_topic = LaunchConfiguration('depth_topic')
-    cloud_topic = LaunchConfiguration('cloud_topic')
+    drone_id = LaunchConfiguration('drone_id', default=0)
+    map_size_x = LaunchConfiguration('map_size_x_', default=42.0)
+    map_size_y = LaunchConfiguration('map_size_y_', default=30.0)
+    map_size_z = LaunchConfiguration('map_size_z_', default=5.0)
     
-    cx = LaunchConfiguration('cx')
-    cy = LaunchConfiguration('cy')
-    fx = LaunchConfiguration('fx')
-    fy = LaunchConfiguration('fy')
+    odometry_topic = LaunchConfiguration('odometry_topic', default='odom')
+    camera_pose_topic = LaunchConfiguration('camera_pose_topic', default='camera_pose')
+    depth_topic = LaunchConfiguration('depth_topic', default='depth_image')
+    cloud_topic = LaunchConfiguration('cloud_topic', default='cloud')
     
-    max_vel = LaunchConfiguration('max_vel')
-    max_acc = LaunchConfiguration('max_acc')
-    max_jer = LaunchConfiguration('max_jer')
-    planning_horizon = LaunchConfiguration('planning_horizon')
-    use_multitopology_trajs = LaunchConfiguration('use_multitopology_trajs')
+    cx = LaunchConfiguration('cx', default=321.04638671875)
+    cy = LaunchConfiguration('cy', default=243.44969177246094)
+    fx = LaunchConfiguration('fx', default=387.229248046875)
+    fy = LaunchConfiguration('fy', default=387.229248046875)
     
-    flight_type = LaunchConfiguration('flight_type')
-    point_num = LaunchConfiguration('point_num')
+    max_vel = LaunchConfiguration('max_vel', default=2.0)
+    max_acc = LaunchConfiguration('max_acc', default=3.0)
+    max_jer = LaunchConfiguration('max_jer', default=20.0)
+    planning_horizon = LaunchConfiguration('planning_horizon', default=7.5)
+    use_multitopology_trajs = LaunchConfiguration('use_multitopology_trajs', default=False)
     
-    point0_x = LaunchConfiguration('point0_x')
-    point0_y = LaunchConfiguration('point0_y')
-    point0_z = LaunchConfiguration('point0_z')
-    point1_x = LaunchConfiguration('point1_x')
-    point1_y = LaunchConfiguration('point1_y')
-    point1_z = LaunchConfiguration('point1_z')
-    point2_x = LaunchConfiguration('point2_x')
-    point2_y = LaunchConfiguration('point2_y')
-    point2_z = LaunchConfiguration('point2_z')
-    point3_x = LaunchConfiguration('point3_x')
-    point3_y = LaunchConfiguration('point3_y')
-    point3_z = LaunchConfiguration('point3_z')
-    point4_x = LaunchConfiguration('point4_x')
-    point4_y = LaunchConfiguration('point4_y')
-    point4_z = LaunchConfiguration('point4_z')
+    flight_type = LaunchConfiguration('flight_type', default=2)
+    point_num = LaunchConfiguration('point_num', default=1)
+    point0_x = LaunchConfiguration('point0_x', default=0.0)
+    point0_y = LaunchConfiguration('point0_y', default=0.0)
+    point0_z = LaunchConfiguration('point0_z', default=0.0)
+    point1_x = LaunchConfiguration('point1_x', default=10.0)
+    point1_y = LaunchConfiguration('point1_y', default=10.0)
+    point1_z = LaunchConfiguration('point1_z', default=0.0)
+    point2_x = LaunchConfiguration('point2_x', default=20.0)
+    point2_y = LaunchConfiguration('point2_y', default=20.0)
+    point2_z = LaunchConfiguration('point2_z', default=1.0)
+    point3_x = LaunchConfiguration('point3_x', default=-10.0)
+    point3_y = LaunchConfiguration('point3_y', default=-10.0)
+    point3_z = LaunchConfiguration('point3_z', default=1.0)
+    point4_x = LaunchConfiguration('point4_x', default=30.0)
+    point4_y = LaunchConfiguration('point4_y', default=30.0)
+    point4_z = LaunchConfiguration('point4_z', default=1.0)
+
+    drone_id_arg = DeclareLaunchArgument('drone_id', default_value=drone_id, description='Drone ID')
+    map_size_x_arg = DeclareLaunchArgument('map_size_x_', default_value=map_size_x, description='Map size along X')
+    map_size_y_arg = DeclareLaunchArgument('map_size_y_', default_value=map_size_y, description='Map size along Y')
+    map_size_z_arg = DeclareLaunchArgument('map_size_z_', default_value=map_size_z, description='Map size along Z')
+    odometry_topic_arg = DeclareLaunchArgument('odometry_topic', default_value=odometry_topic, description='Odometry topic')
+    camera_pose_topic_arg = DeclareLaunchArgument('camera_pose_topic', default_value=camera_pose_topic, description='Camera pose topic')
+    depth_topic_arg = DeclareLaunchArgument('depth_topic', default_value=depth_topic, description='Depth topic')
+    cloud_topic_arg = DeclareLaunchArgument('cloud_topic', default_value=cloud_topic, description='Point cloud topic')
+    cx_arg = DeclareLaunchArgument('cx', default_value=cx, description='Camera intrinsic cx')
+    cy_arg = DeclareLaunchArgument('cy', default_value=cy, description='Camera intrinsic cy')
+    fx_arg = DeclareLaunchArgument('fx', default_value=fx, description='Camera intrinsic fx')
+    fy_arg = DeclareLaunchArgument('fy', default_value=fy, description='Camera intrinsic fy')
+    max_vel_arg = DeclareLaunchArgument('max_vel', default_value=max_vel, description='Maximum velocity')
+    max_acc_arg = DeclareLaunchArgument('max_acc', default_value=max_acc, description='Maximum acceleration')
+    max_jer_arg = DeclareLaunchArgument('max_jer', default_value=max_jer, description='Maximum jerk')
+    planning_horizon_arg = DeclareLaunchArgument('planning_horizon', default_value=planning_horizon, description='Planning horizon')
+    use_multitopology_trajs_arg = DeclareLaunchArgument('use_multitopology_trajs', default_value=use_multitopology_trajs, description='Use multitopology trajectories')
     
+    flight_type_arg = DeclareLaunchArgument('flight_type', default_value=flight_type, description='flight_type')
+    point_num_arg = DeclareLaunchArgument('point_num', default_value=point_num, description='Number of waypoints')
+    point0_x_arg = DeclareLaunchArgument('point0_x', default_value=point0_x, description='Waypoint 0 X coordinate')
+    point0_y_arg = DeclareLaunchArgument('point0_y', default_value=point0_y, description='Waypoint 0 Y coordinate')
+    point0_z_arg = DeclareLaunchArgument('point0_z', default_value=point0_z, description='Waypoint 0 Z coordinate')
+    point1_x_arg = DeclareLaunchArgument('point1_x', default_value=point1_x, description='Waypoint 1 X coordinate')
+    point1_y_arg = DeclareLaunchArgument('point1_y', default_value=point1_y, description='Waypoint 1 Y coordinate')
+    point1_z_arg = DeclareLaunchArgument('point1_z', default_value=point1_z, description='Waypoint 1 Z coordinate')
+    point2_x_arg = DeclareLaunchArgument('point2_x', default_value=point2_x, description='Waypoint 2 X coordinate')
+    point2_y_arg = DeclareLaunchArgument('point2_y', default_value=point2_y, description='Waypoint 2 Y coordinate')
+    point2_z_arg = DeclareLaunchArgument('point2_z', default_value=point2_z, description='Waypoint 2 Z coordinate')
+    point3_x_arg = DeclareLaunchArgument('point3_x', default_value=point3_x, description='Waypoint 3 X coordinate')
+    point3_y_arg = DeclareLaunchArgument('point3_y', default_value=point3_y, description='Waypoint 3 Y coordinate')
+    point3_z_arg = DeclareLaunchArgument('point3_z', default_value=point3_z, description='Waypoint 3 Z coordinate')
+    point4_x_arg = DeclareLaunchArgument('point4_x', default_value=point4_x, description='Waypoint 4 X coordinate')
+    point4_y_arg = DeclareLaunchArgument('point4_y', default_value=point4_y, description='Waypoint 4 Y coordinate')
+    point4_z_arg = DeclareLaunchArgument('point4_z', default_value=point4_z, description='Waypoint 4 Z coordinate')
+
     # Create the ego_planner_node
     ego_planner_node = Node(
         package='ego_planner',
@@ -96,18 +89,18 @@ def generate_launch_description():
         name=['drone_', drone_id, '_ego_planner_node'],
         output='screen',
         remappings=[
-            ('~/odom_world', ['/drone_', drone_id, '_', odometry_topic]),
-            ('~/mandatory_stop', '/mandatory_stop_to_planner'),
-            ('~/planning/trajectory', ['/drone_', drone_id, '_planning/trajectory']),
-            ('~/planning/data_display', ['/drone_', drone_id, '_planning/data_display']),
-            ('~/planning/broadcast_traj_send', '/broadcast_traj_from_planner'),
-            ('~/planning/broadcast_traj_recv', '/broadcast_traj_to_planner'),
-            ('~/planning/heartbeat', ['/drone_', drone_id, '_traj_server/heartbeat']),
-            ('/goal', '/goal_with_id'),
-            ('~/grid_map/odom', ['/drone_', drone_id, '_', odometry_topic]),
-            ('~/grid_map/cloud', ['/drone_', drone_id, '_', cloud_topic]),
-            ('~/grid_map/pose', ['/drone_', drone_id, '_', camera_pose_topic]),
-            ('~/grid_map/depth', ['/drone_', drone_id, '_', depth_topic]),
+            ('odom_world', ['/drone_', drone_id, '_', odometry_topic]),
+            ('mandatory_stop', '/mandatory_stop_to_planner'),
+            ('planning/trajectory', ['/drone_', drone_id, '_planning/trajectory']),
+            ('planning/data_display', ['/drone_', drone_id, '_planning/data_display']),
+            ('planning/broadcast_traj_send', '/broadcast_traj_from_planner'),
+            ('planning/broadcast_traj_recv', '/broadcast_traj_to_planner'),
+            ('planning/heartbeat', ['/drone_', drone_id, '_traj_server/heartbeat']),
+            ('goal', '/goal_with_id'),
+            ('grid_map/odom', ['/drone_', drone_id, '_', odometry_topic]),
+            ('grid_map/cloud', ['/drone_', drone_id, '_', cloud_topic]),
+            ('grid_map/pose', ['/drone_', drone_id, '_', camera_pose_topic]),
+            ('grid_map/depth', ['/drone_', drone_id, '_', depth_topic]),
         ],
         parameters=[{
             # Planning FSM parameters
@@ -204,44 +197,47 @@ def generate_launch_description():
             'optimization/record_opt': True,
         }]
     )
-    
-    return LaunchDescription([
-        # Declare all arguments
-        drone_id_arg,
-        map_size_x_arg,
-        map_size_y_arg,
-        map_size_z_arg,
-        odometry_topic_arg,
-        camera_pose_topic_arg,
-        depth_topic_arg,
-        cloud_topic_arg,
-        cx_arg,
-        cy_arg,
-        fx_arg,
-        fy_arg,
-        max_vel_arg,
-        max_acc_arg,
-        max_jer_arg,
-        planning_horizon_arg,
-        use_multitopology_trajs_arg,
-        flight_type_arg,
-        point_num_arg,
-        point0_x_arg,
-        point0_y_arg,
-        point0_z_arg,
-        point1_x_arg,
-        point1_y_arg,
-        point1_z_arg,
-        point2_x_arg,
-        point2_y_arg,
-        point2_z_arg,
-        point3_x_arg,
-        point3_y_arg,
-        point3_z_arg,
-        point4_x_arg,
-        point4_y_arg,
-        point4_z_arg,
-        
-        # Launch the node
-        ego_planner_node,
-    ])
+
+    ld = LaunchDescription()
+
+    # Add LaunchArguments
+    ld.add_action(drone_id_arg)
+    ld.add_action(map_size_x_arg)
+    ld.add_action(map_size_y_arg)
+    ld.add_action(map_size_z_arg)
+    ld.add_action(odometry_topic_arg)
+    ld.add_action(camera_pose_topic_arg)
+    ld.add_action(depth_topic_arg)
+    ld.add_action(cloud_topic_arg)
+    ld.add_action(cx_arg)
+    ld.add_action(cy_arg)
+    ld.add_action(fx_arg)
+    ld.add_action(fy_arg)
+    ld.add_action(max_vel_arg)
+    ld.add_action(max_acc_arg)
+    ld.add_action(max_jer_arg)
+    ld.add_action(planning_horizon_arg)
+    ld.add_action(use_multitopology_trajs_arg)
+
+    ld.add_action(flight_type_arg)
+    ld.add_action(point_num_arg)
+    ld.add_action(point0_x_arg)
+    ld.add_action(point0_y_arg)
+    ld.add_action(point0_z_arg)
+    ld.add_action(point1_x_arg)
+    ld.add_action(point1_y_arg)
+    ld.add_action(point1_z_arg)
+    ld.add_action(point2_x_arg)
+    ld.add_action(point2_y_arg)
+    ld.add_action(point2_z_arg)
+    ld.add_action(point3_x_arg)
+    ld.add_action(point3_y_arg)
+    ld.add_action(point3_z_arg)
+    ld.add_action(point4_x_arg)
+    ld.add_action(point4_y_arg)
+    ld.add_action(point4_z_arg)
+
+    # Add Node
+    ld.add_action(ego_planner_node)
+
+    return ld

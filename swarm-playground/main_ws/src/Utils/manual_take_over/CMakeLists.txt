@@ -18,7 +18,6 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
-
 find_package(quadrotor_msgs REQUIRED)
 
 # Include directories
@@ -43,6 +42,7 @@ ament_target_dependencies(manual_take_over
 add_executable(manual_take_over_station
   src/ground_station.cpp
 )
+
 ament_target_dependencies(manual_take_over_station
   rclcpp
   std_msgs

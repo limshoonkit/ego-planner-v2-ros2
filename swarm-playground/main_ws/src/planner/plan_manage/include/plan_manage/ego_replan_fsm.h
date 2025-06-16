@@ -102,6 +102,8 @@ namespace ego_planner
     rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr heartbeat_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr ground_height_pub_;
 
+    rclcpp::TimerBase::SharedPtr preset_target_timer_;
+
     /* state machine functions */
     void execFSMCallback();
     void changeFSMExecState(FSM_EXEC_STATE new_state, std::string pos_call);

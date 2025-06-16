@@ -31,7 +31,7 @@ void GridMap::initMap(rclcpp::Node::SharedPtr node)
   node_->declare_parameter("grid_map/p_min", 0.12);
   node_->declare_parameter("grid_map/p_max", 0.97);
   node_->declare_parameter("grid_map/p_occ", 0.80);
-  node_->declare_parameter("grid_map/fading_time", 1);
+  node_->declare_parameter("grid_map/fading_time", 1000.0);
   node_->declare_parameter("grid_map/min_ray_length", -0.1);
   node_->declare_parameter("grid_map/show_occ_time", false);
 

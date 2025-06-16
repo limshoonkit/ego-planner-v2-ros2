@@ -85,11 +85,12 @@ namespace ego_planner
       RCLCPP_INFO(node_->get_logger(), "Wait for 2 seconds.");
 
       // Use a timer countdown
-      auto timer = node_->create_wall_timer(
+      preset_target_timer_ = node_->create_wall_timer(
           std::chrono::milliseconds(2000),
           [this]()
           {
             readGivenWpsAndPlan();
+            preset_target_timer_->cancel();
           });
     }
     else
@@ -511,7 +512,17 @@ namespace ego_planner
       final_goal_ = next_wp;
 
       constexpr double step_size_t = 0.1;
-      int i_end = floor(planner_manager_->traj_.global_traj.duration / step_size_t);
+      double duration = planner_manager_->traj_.global_traj.duration;
+      // cout << "Duration value: " << duration << endl;
+
+      if (!std::isfinite(duration) || duration <= 0)
+      {
+        RCLCPP_ERROR(node_->get_logger(), "Invalid trajectory duration: %f", duration);
+        return false;
+      }
+
+      int i_end = floor(duration / step_size_t);
+      // cout << "Calculated i_end: " << i_end << endl;
       std::vector<Eigen::Vector3d> gloabl_traj(i_end);
       for (int i = 0; i < i_end; i++)
       {
@@ -520,7 +531,6 @@ namespace ego_planner
 
       have_target_ = true;
       have_new_target_ = true;
-
       if (exec_state_ != WAIT_TARGET)
       {
         while (exec_state_ != EXEC_TRAJ)
@@ -608,6 +618,7 @@ namespace ego_planner
     }
 
     wpt_id_ = 0;
+    cout << "Start to plan, wps size =" << wps_.size() << endl;
     planNextWaypoint(wps_[wpt_id_]);
   }
 
@@ -628,7 +639,6 @@ namespace ego_planner
     odom_vel_(0) = msg->twist.twist.linear.x;
     odom_vel_(1) = msg->twist.twist.linear.y;
     odom_vel_(2) = msg->twist.twist.linear.z;
-
     have_odom_ = true;
   }
 

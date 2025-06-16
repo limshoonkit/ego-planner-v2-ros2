@@ -5,8 +5,13 @@ This is a partial ros2 port of the [EGO-Planner-v2](https://github.com/ZJU-FAST-
 The main_ws has been updated to match ros2 syntax as closely as possible while retaining original logic.
 
 ```
-cd swarm-playground/main_ws
-colcon build --symlink-install
+# rm -rf build/ log/ install/
+colcon build --base-paths swarm-playground/main_ws/ --symlink-install
 source install/setup.bash
-ros2 launch ego_planner single_drone_interactive.launch
+```
+
+```
+source install/setup.bash && unset GTK_PATH && ros2 launch ego_planner rviz.launch.py # terminal 1
+source install/setup.bash && ros2 launch ego_planner single_drone_interactive.launch.py # terminal 2
+source install/setup.bash && ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0 --qx 0 --qy 0 --qz 0 --qw 1 --frame-id map --child-frame-id world # terminal 3
 ```

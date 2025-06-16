@@ -21,9 +21,9 @@ def generate_launch_description():
         name='random_forest',
         output='screen',
         parameters=[{
-            'map/x_size': 26,
-            'map/y_size': 20,
-            'map/z_size': 3,
+            'map/x_size': 26.0,
+            'map/y_size': 20.0,
+            'map/z_size': 3.0,
             'map/resolution': 0.1,
             'ObstacleShape/seed': 1,
             'map/obs_num': 100,

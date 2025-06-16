@@ -15,13 +15,30 @@ namespace ego_planner
   {
     /* read algorithm parameters */
     node_ = node;
-    node_->get_parameter_or("manager/max_vel", pp_.max_vel_, -1.0);
-    node_->get_parameter_or("manager/max_acc", pp_.max_acc_, -1.0);
-    node_->get_parameter_or("manager/feasibility_tolerance", pp_.feasibility_tolerance_, 0.0);
-    node_->get_parameter_or("manager/polyTraj_piece_length", pp_.polyTraj_piece_length, -1.0);
-    node_->get_parameter_or("manager/planning_horizon", pp_.planning_horizen_, 5.0);
-    node_->get_parameter_or("manager/use_multitopology_trajs", pp_.use_multitopology_trajs, false);
-    node_->get_parameter_or("manager/drone_id", pp_.drone_id, -1);
+
+    node_->declare_parameter("manager/max_vel", -1.0);
+    node_->declare_parameter("manager/max_acc", -1.0);
+    node_->declare_parameter("manager/feasibility_tolerance", 0.0);
+    node_->declare_parameter("manager/polyTraj_piece_length", -1.0);
+    node_->declare_parameter("manager/planning_horizon", 5.0);
+    node_->declare_parameter("manager/use_multitopology_trajs", false);
+    node_->declare_parameter("manager/drone_id", -1);
+
+    node_->get_parameter("manager/max_vel", pp_.max_vel_);
+    node_->get_parameter("manager/max_acc", pp_.max_acc_);
+    node_->get_parameter("manager/feasibility_tolerance", pp_.feasibility_tolerance_);
+    node_->get_parameter("manager/polyTraj_piece_length", pp_.polyTraj_piece_length);
+    node_->get_parameter("manager/planning_horizon", pp_.planning_horizen_);
+    node_->get_parameter("manager/use_multitopology_trajs", pp_.use_multitopology_trajs);
+    node_->get_parameter("manager/drone_id", pp_.drone_id);
+
+    RCLCPP_INFO(node_->get_logger(), "drone_id: %d", pp_.drone_id);
+    RCLCPP_INFO(node_->get_logger(), "feasibility_tolerance: %f", pp_.feasibility_tolerance_);
+    RCLCPP_INFO(node_->get_logger(), "polyTraj_piece_length: %f", pp_.polyTraj_piece_length);
+    RCLCPP_INFO(node_->get_logger(), "planning_horizon: %f", pp_.planning_horizen_);
+    RCLCPP_INFO(node_->get_logger(), "use_multitopology_trajs: %d", pp_.use_multitopology_trajs);
+    RCLCPP_INFO(node_->get_logger(), "max_vel: %f", pp_.max_vel_);
+    RCLCPP_INFO(node_->get_logger(), "max_acc: %f", pp_.max_acc_);
 
     grid_map_.reset(new GridMap);
     grid_map_->initMap(node_);
@@ -442,38 +459,53 @@ namespace ego_planner
     double des_vel = pp_.max_vel_ / 1.5;
     Eigen::VectorXd time_vec(waypoints.size());
 
+    // cout << "Initial des_vel: " << des_vel << endl;
+    // cout << "max_vel_: " << pp_.max_vel_ << endl;
+    // cout << "Waypoints size: " << waypoints.size() << endl;
+    // cout << "Start pos: " << start_pos.transpose() << endl;
+    // cout << "End pos: " << waypoints.back().transpose() << endl;
+
+    
     for (int j = 0; j < 2; ++j)
     {
-      for (size_t i = 0; i < waypoints.size(); ++i)
-      {
-        time_vec(i) = (i == 0) ? (waypoints[0] - start_pos).norm() / des_vel
-                               : (waypoints[i] - waypoints[i - 1]).norm() / des_vel;
-      }
+        cout << "=== Iteration " << j << " ===" << endl;
+        cout << "des_vel: " << des_vel << endl;
+        
+        for (size_t i = 0; i < waypoints.size(); ++i)
+        {
+            double segment_time = (i == 0) ? (waypoints[0] - start_pos).norm() / des_vel
+                                           : (waypoints[i] - waypoints[i - 1]).norm() / des_vel;
+            
+            // cout << "Segment " << i << " time: " << segment_time << endl;
+            time_vec(i) = segment_time;
+        }
+        
+        // cout << "Time vector: " << time_vec.transpose() << endl;
+        // cout << "Time vector sum: " << time_vec.sum() << endl;
 
-      globalMJO.generate(innerPts, time_vec);
+        globalMJO.generate(innerPts, time_vec);
+        
+        auto generated_traj = globalMJO.getTraj();
+        cout << "Generated traj total duration: " << generated_traj.getTotalDuration() << endl;
+        
+        if (globalMJO.getTraj().getMaxVelRate() < pp_.max_vel_ ||
+            start_vel.norm() > pp_.max_vel_ ||
+            end_vel.norm() > pp_.max_vel_)
+        {
+            cout << "Breaking early - velocity constraints satisfied" << endl;
+            break;
+        }
 
-      if (globalMJO.getTraj().getMaxVelRate() < pp_.max_vel_ ||
-          start_vel.norm() > pp_.max_vel_ ||
-          end_vel.norm() > pp_.max_vel_)
-      {
-        break;
-      }
-
-      if (j == 2)
-      {
-        RCLCPP_WARN(node_->get_logger(), "Global traj MaxVel = %f > set_max_vel", globalMJO.getTraj().getMaxVelRate());
-        cout << "headState=" << endl
-             << headState << endl;
-        cout << "tailState=" << endl
-             << tailState << endl;
-      }
-
-      des_vel /= 1.5;
+        des_vel /= 1.5;
+        // cout << "Reducing des_vel to: " << des_vel << endl;
     }
 
     auto time_now = node_->now();
+    // cout << "Final generated trajectory duration: " << globalMJO.getTraj().getTotalDuration() << endl;
+    // cout << "Current time: " << time_now.seconds() << endl;
+    
     traj_.setGlobalTraj(globalMJO.getTraj(), time_now.seconds());
-
+    
     return true;
   }
 
