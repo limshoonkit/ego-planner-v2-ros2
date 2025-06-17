@@ -15,3 +15,6 @@ source install/setup.bash && unset GTK_PATH && ros2 launch ego_planner rviz.laun
 source install/setup.bash && ros2 launch ego_planner single_drone_interactive.launch.py # terminal 2
 source install/setup.bash && ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0 --qx 0 --qy 0 --qz 0 --qw 1 --frame-id map --child-frame-id world # terminal 3
 ```
+
+https://github.com/user-attachments/assets/55542737-9748-42f4-bc30-03e7faca9202
+
