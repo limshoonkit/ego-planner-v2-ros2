@@ -22,33 +22,61 @@ def generate_launch_description():
     odom_topic_cmd = DeclareLaunchArgument('odom_topic', default_value=odom_topic, description='Odometry topic')
 
     # Map generator node
+    # map_generator_node = Node(
+    #     package='map_generator',
+    #     executable='random_forest',
+    #     name='random_forest',
+    #     output='screen',
+    #     parameters=[
+    #         {'map/x_size': 26.0},
+    #         {'map/y_size': 20.0},
+    #         {'map/z_size': 3.0},
+    #         {'map/resolution': 0.1},
+    #         {'ObstacleShape/seed': 1.0},
+    #         {'map/obs_num': 100},
+    #         {'ObstacleShape/lower_rad': 0.5},
+    #         {'ObstacleShape/upper_rad': 0.7},
+    #         {'ObstacleShape/lower_hei': 0.0},
+    #         {'ObstacleShape/upper_hei': 3.0},
+    #         {'map/circle_num': 100},
+    #         {'ObstacleShape/radius_l': 0.7},
+    #         {'ObstacleShape/radius_h': 0.5},
+    #         {'ObstacleShape/z_l': 0.7},
+    #         {'ObstacleShape/z_h': 0.8},
+    #         {'ObstacleShape/theta': 0.5},
+    #         {'pub_rate': 1.0},
+    #         {'min_distance': 0.8}
+    #     ]
+    # )
+    map_share_dir = get_package_share_directory('map_processor')
+    map_pcd_file_path = os.path.join(map_share_dir, 'maps', 'sample_data3.pcd')
+    map_config_file_path = os.path.join(map_share_dir, 'config', 'map_processor_params.yaml')
+
     map_generator_node = Node(
-        package='map_generator',
-        executable='random_forest',
-        name='random_forest',
+        package='map_processor',
+        executable='map_processor_node',
+        name='map_processor_node',
+        namespace='',
         output='screen',
+        emulate_tty=True,
+        remappings=[
+            ('global_cloud', 'map_generator/global_cloud'),
+        ],
         parameters=[
-            {'map/x_size': 26.0},
-            {'map/y_size': 20.0},
-            {'map/z_size': 3.0},
-            {'map/resolution': 0.1},
-            {'ObstacleShape/seed': 1.0},
-            {'map/obs_num': 100},
-            {'ObstacleShape/lower_rad': 0.5},
-            {'ObstacleShape/upper_rad': 0.7},
-            {'ObstacleShape/lower_hei': 0.0},
-            {'ObstacleShape/upper_hei': 3.0},
-            {'map/circle_num': 100},
-            {'ObstacleShape/radius_l': 0.7},
-            {'ObstacleShape/radius_h': 0.5},
-            {'ObstacleShape/z_l': 0.7},
-            {'ObstacleShape/z_h': 0.8},
-            {'ObstacleShape/theta': 0.5},
-            {'pub_rate': 1.0},
-            {'min_distance': 0.8}
+            {'pcd_file_path': map_pcd_file_path},
+            map_config_file_path,
         ]
     )
 
+    static_tf_node = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf',
+        arguments=[
+            '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', 'world', 'map'
+        ]
+    )
+    
     ego_planner_dir = os.path.join(
         get_package_share_directory('ego_planner'),
         'launch',
@@ -60,9 +88,9 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(ego_planner_dir),
         launch_arguments={
             'drone_id': drone_id,
-            'init_x': str(-15.0),
+            'init_x': str(0.0),
             'init_y': str(0.0),
-            'init_z': str(1.0),
+            'init_z': str(3.0),
             'map_size_x_': map_size_x,
             'map_size_y_': map_size_y,
             'map_size_z_': map_size_z,
@@ -94,5 +122,6 @@ def generate_launch_description():
 
     ld.add_action(map_generator_node)
     ld.add_action(include_run_in_sim)
+    ld.add_action(static_tf_node)
 
     return ld

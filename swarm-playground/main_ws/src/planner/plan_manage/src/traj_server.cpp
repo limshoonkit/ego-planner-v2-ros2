@@ -128,7 +128,7 @@ private:
         constexpr double YAW_DOT_MAX_PER_SEC = 2 * M_PI;
         constexpr double YAW_DOT_DOT_MAX_PER_SEC = 5 * M_PI;
         std::pair<double, double> yaw_yawdot(0, 0);
-
+        
         Eigen::Vector3d dir = t_cur + time_forward_ <= traj_duration_
                                   ? traj_->getPos(t_cur + time_forward_) - pos
                                   : traj_->getPos(traj_duration_) - pos;
@@ -249,6 +249,10 @@ private:
             vel = traj_->getVel(t_cur);
             acc = traj_->getAcc(t_cur);
             jer = traj_->getJer(t_cur);
+            RCLCPP_INFO(this->get_logger(), "t_cur: %f", t_cur);
+            RCLCPP_INFO(this->get_logger(), "pos: %f, %f, %f", pos(0), pos(1), pos(2));
+            // RCLCPP_INFO(this->get_logger(), "vel: %f, %f, %f", vel(0), vel(1), vel(2));
+            // RCLCPP_INFO(this->get_logger(), "acc: %f, %f, %f", acc(0), acc(1), acc(2));
 
             /*** calculate yaw ***/
             yaw_yawdot = calculate_yaw(t_cur, pos, (time_now - time_last).seconds());

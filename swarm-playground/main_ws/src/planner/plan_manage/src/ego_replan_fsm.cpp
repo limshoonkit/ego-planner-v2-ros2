@@ -577,7 +577,6 @@ namespace ego_planner
         }
       }
     }
-
     return false;
   }
 

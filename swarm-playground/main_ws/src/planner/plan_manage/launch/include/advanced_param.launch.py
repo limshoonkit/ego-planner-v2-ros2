@@ -135,7 +135,7 @@ def generate_launch_description():
             'grid_map/local_update_range_x': 5.5,
             'grid_map/local_update_range_y': 5.5,
             'grid_map/local_update_range_z': 2.0,
-            'grid_map/obstacles_inflation': 0.1,
+            'grid_map/obstacles_inflation': 0.25,
             'grid_map/local_map_margin': 10,
             'grid_map/enable_virtual_wall': True,
             'grid_map/virtual_ceil': 3.0,

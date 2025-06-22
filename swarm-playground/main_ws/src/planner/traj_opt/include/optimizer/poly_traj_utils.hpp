@@ -67,6 +67,7 @@ namespace poly_traj
             for (int i = 5; i >= 0; i--)
             {
                 pos += tn * coeffMat.col(i);
+                std::cout << " coeff at i= " << i << "\n" << coeffMat.col(i) << std::endl;
                 tn *= t;
             }
             return pos;
@@ -528,6 +529,7 @@ namespace poly_traj
         inline Eigen::Vector3d getPos(double t) const
         {
             int pieceIdx = locatePieceIdx(t);
+            std::cout << "[getPos] pieceIdx: " << pieceIdx << ", totalPieceNum: " << getPieceNum() << ", t: " << t << std::endl;
             return pieces[pieceIdx].getPos(t);
         }
 

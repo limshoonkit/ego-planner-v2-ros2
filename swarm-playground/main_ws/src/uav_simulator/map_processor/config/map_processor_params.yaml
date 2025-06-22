@@ -1,0 +1,38 @@
+# map_processor_params.yaml
+map_processor_node:
+  ros__parameters:
+    voxel_leaf_size: 0.1
+    starting_point:
+      x: 26.1
+      y: -24.142
+    map_bounds:
+      min_x: -80.0
+      max_x: 80.0
+      min_y: -80.0
+      max_y: 80.0
+      min_z: -0.5
+      max_z: 15.0
+    rate: 1.0
+    frame_id: "map"
+
+    # Obstacle generation parameters
+    obstacles:
+      enabled: true                   # Enable/disable obstacle generation
+      count: 50                       # Number of obstacles to generate
+      min_radius: 1.0                 # Minimum radius/width (meters)
+      max_radius: 2.5                 # Maximum radius/width (meters)
+      min_height: 0.5                 # Minimum height (meters)
+      max_height: 3.0                 # Maximum height (meters)
+      height_offset_min: 0.0          # Minimum Z offset from ground (meters)
+      height_offset_max: 4.0          # Maximum Z offset from ground (meters)
+      point_density: 200.0            # Points per cubic meter
+      margin_from_bounds: 2.0         # Safety margin from map boundaries (meters)
+      shapes: ["sphere", "cylinder", "box", "cone"]  # Available shapes
+      # Quadrant-based placement options:
+      # "all" - distribute obstacles across all quadrants
+      # "top_left", "top_right", "bottom_left", "bottom_right" - single quadrant
+      # "custom" - use specific quadrants listed in 'quadrants' parameter
+      quadrant_mode: "custom" # "custom" "all"
+      # Used only when quadrant_mode is "custom"
+      # Available: "top_left", "top_right", "bottom_left", "bottom_right"
+      quadrants: ["bottom_left", "bottom_right"]

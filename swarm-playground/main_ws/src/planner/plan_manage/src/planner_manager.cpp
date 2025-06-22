@@ -140,9 +140,9 @@ namespace ego_planner
 
       if (trajs.size() > 1)
       {
-        cout << "\033[1;33m"
-             << "multi-trajs=" << trajs.size() << ",\033[1;0m"
-             << " Success:fail=" << success.sum() << ":" << success.size() - success.sum() << endl;
+        // cout << "\033[1;33m"
+        //      << "multi-trajs=" << trajs.size() << ",\033[1;0m"
+        //      << " Success:fail=" << success.sum() << ":" << success.size() - success.sum() << endl;
       }
 
       visualization_->displayMultiOptimalPathList(vis_trajs, 0.1); // This visuallization will take up several milliseconds.
@@ -470,7 +470,7 @@ namespace ego_planner
     for (int j = 0; j < 2; ++j)
     {
         cout << "=== Iteration " << j << " ===" << endl;
-        cout << "des_vel: " << des_vel << endl;
+        // cout << "des_vel: " << des_vel << endl;
         
         for (size_t i = 0; i < waypoints.size(); ++i)
         {
@@ -487,13 +487,13 @@ namespace ego_planner
         globalMJO.generate(innerPts, time_vec);
         
         auto generated_traj = globalMJO.getTraj();
-        cout << "Generated traj total duration: " << generated_traj.getTotalDuration() << endl;
+        // cout << "Generated traj total duration: " << generated_traj.getTotalDuration() << endl;
         
         if (globalMJO.getTraj().getMaxVelRate() < pp_.max_vel_ ||
             start_vel.norm() > pp_.max_vel_ ||
             end_vel.norm() > pp_.max_vel_)
         {
-            cout << "Breaking early - velocity constraints satisfied" << endl;
+            // cout << "Breaking early - velocity constraints satisfied" << endl;
             break;
         }
 
